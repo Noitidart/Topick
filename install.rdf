@@ -26,6 +26,7 @@
 		<em:name>Topick</em:name>
 		<em:description>System wide hotkey enabling toggling of active windows to be "always on top". </em:description>
 		<em:creator>Noitidart</em:creator>
+		<em:contributor>Alexandre Moore for Icon</em:contributor>
 		<!-- start localizing - For each entry in default data MUST have equivalent in each localized block -->
 		<em:localized>
 			<Description>
@@ -33,6 +34,7 @@
 				<em:name>Topick</em:name>
 				<em:description>System wide hotkey enabling toggling of active windows to be "always on top". </em:description>
 				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Icon</em:contributor>
 			</Description>
 		</em:localized>
 	  </Description>
