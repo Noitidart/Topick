@@ -24,7 +24,7 @@ var core = { // core has stuff added into by MainWorker (currently MainWorker) a
 		},
 		prefbranch: 'extensions.Topick@jetpack.',
 		prefs: {},
-		cache_key: 'v1.0', // set to version on release
+		cache_key: Math.random(), // set to version on release
 		locale: {
 			all: {
 				aboutpage_desc: 'Configure and customize settings of Topick'
@@ -48,9 +48,9 @@ var gTimer = Cc['@mozilla.org/timer;1'].createInstance(Ci.nsITimer);
 
 // start - addon functionalities
 function startFeedFramescript(aMessageManager) {
-	// xpcomSetInterval(gTimer, 1000, function() {
-	// 	aMessageManager.sendAsyncMessage(core.addon.id, (new Date()).toLocaleString())
-	// });
+	xpcomSetInterval(gTimer, 1000, function() {
+		aMessageManager.sendAsyncMessage(core.addon.id, (new Date()).toLocaleString())
+	});
 }
 
 var HotkeyWorkerMainThreadFuncs = {
@@ -94,7 +94,7 @@ function initAndRegisterAbout() {
 	// register it
 	aboutFactory_instance = new AboutFactory(AboutPage);
 	
-
+	console.log('aboutFactory_instance:', aboutFactory_instance);
 }
 
 function AboutFactory(component) {
@@ -118,7 +118,7 @@ function AboutFactory(component) {
 // start - server/framescript comm layer
 var fsMsgListener = {
 	receiveMessage: function(aMsgEvent) {
-
+		console.log('BOOTSTRAP getting message FROM FRAMESCRIPT, data:', aMsgEvent.data);
 
 		if (aMsgEvent.data == 'feed me') {
 			startFeedFramescript(aMsgEvent.target.messageManager);
@@ -140,7 +140,7 @@ function startup(aData, aReason) {
 	var promise_initHotkeys = SIPWorker('HotkeyWorker', core.addon.path.content + 'modules/hotkey/HotkeyWorker.js', core, HotkeyWorkerMainThreadFuncs).post();
 	promise_initHotkeys.then(
 		function(aVal) {
-
+			console.log('Fullfilled - promise_initHotkeys - ', aVal);
 			
 		},
 		genericReject.bind(null, 'promise_initHotkeys', 0)
@@ -161,7 +161,7 @@ function shutdown(aData, aReason) {
 		var promise_requestTerm = HotkeyWorker.post('prepTerm', []);
 		promise_requestTerm.then(
 			function(aVal) {
-
+				console.log('Fullfilled - promise_requestTerm - ', aVal);
 				HotkeyWorker._worker.terminate();
 			},
 			genericReject.bind(null, 'promise_requestTerm', 0)
@@ -283,7 +283,7 @@ function genericReject(aPromiseName, aPromiseToReject, aReason) {
 		name: aPromiseName,
 		aReason: aReason
 	};
-
+	console.error('Rejected - ' + aPromiseName + ' - ', rejObj);
 	if (aPromiseToReject) {
 		aPromiseToReject.reject(rejObj);
 	}
@@ -293,7 +293,7 @@ function genericCatch(aPromiseName, aPromiseToReject, aCaught) {
 		name: aPromiseName,
 		aCaught: aCaught
 	};
-
+	console.error('Caught - ' + aPromiseName + ' - ', rejObj);
 	if (aPromiseToReject) {
 		aPromiseToReject.reject(rejObj);
 	}
@@ -336,7 +336,7 @@ function SIPWorker(workerScopeName, aPath, aCore=core, aFuncExecScope=BOOTSTRAP)
 					var promise_initWorker = bootstrap[workerScopeName].post('init', [aCore]);
 					promise_initWorker.then(
 						function(aVal) {
-
+							console.log('Fullfilled - promise_initWorker - ', aVal);
 							// start - do stuff here - promise_initWorker
 							if (pFun) {
 								doOrigPost();
@@ -354,7 +354,7 @@ function SIPWorker(workerScopeName, aPath, aCore=core, aFuncExecScope=BOOTSTRAP)
 					var promise_origPosted = bootstrap[workerScopeName].post(pFun, pArgs, pCosure, pTransfers);
 					promise_origPosted.then(
 						function(aVal) {
-
+							console.log('Fullfilled - promise_origPosted - ', aVal);
 							deferredMain_post.resolve(aVal);
 						},
 						genericReject.bind(null, 'promise_origPosted', deferredMain_post)
@@ -376,22 +376,22 @@ function SIPWorker(workerScopeName, aPath, aCore=core, aFuncExecScope=BOOTSTRAP)
 				// got an error that PromiseWorker did not know how to serialize. so we didnt get a {fail:.....} postMessage. so in onerror it does pop of the deferred. however with allowing promiseworker to return async, we cant simply pop if there are more then 1 promises pending
 				var cQueue = bootstrap[workerScopeName]._queue._array;
 				if (cQueue.length === 1) {
-
+					// console.log('its fine for origOnerror it will just pop the only one there, which is the one to reject for sure as there are no other promises');
 					// DO NOTE THOUGH - .onerror message might come in from any error, it is innate to worker to send this message on error, so it will pop out the promise early, so maybe i might run this origOnerror before the actual promise rejects due to catch
 					origOnerror(onErrorEvent);
 				} else {
 					onErrorEvent.preventDefault(); // as they do this in origOnerror so i prevent here too
-
+					console.error('queue has more then one promises in there, i dont know which one to reject', 'onErrorEvent:', onErrorEvent, 'queue:', bootstrap[workerScopeName]._queue._array);
 				}
 			};
 			
 			bootstrap[workerScopeName]._worker.onmessage = function(aMsgEvent) {
 				////// start - my custom stuff
 				var aMsgEventData = aMsgEvent.data;
-
+				console.log('promiseworker receiving msg:', aMsgEventData);
 				if (Array.isArray(aMsgEventData)) {
 					// my custom stuff, PromiseWorker did self.postMessage to call a function from here
-
+					console.log('promsieworker is trying to execute function in mainthread');
 					
 					var callbackPendingId;
 					if (typeof aMsgEventData[aMsgEventData.length-1] == 'string' && aMsgEventData[aMsgEventData.length-1].indexOf(SIP_CB_PREFIX) == 0) {
@@ -408,7 +408,7 @@ function SIPWorker(workerScopeName, aPath, aCore=core, aFuncExecScope=BOOTSTRAP)
 									function(aVal) {
 										if (aVal.length >= 2 && aVal[aVal.length-1] == SIP_TRANS_WORD && Array.isArray(aVal[aVal.length-2])) {
 											// to transfer in callback, set last element in arr to SIP_TRANS_WORD and 2nd to last element an array of the transferables									// cannot transfer on promise reject, well can, but i didnt set it up as probably makes sense not to
-
+											console.error('doing transferrrrr');
 											aVal.pop();
 											bootstrap[workerScopeName]._worker.postMessage([callbackPendingId, aVal], aVal.pop());
 										} else {
@@ -416,12 +416,12 @@ function SIPWorker(workerScopeName, aPath, aCore=core, aFuncExecScope=BOOTSTRAP)
 										}
 									},
 									function(aReason) {
-
+										console.error('aReject:', aReason);
 										bootstrap[workerScopeName]._worker.postMessage([callbackPendingId, ['promise_rejected', aReason]]);
 									}
 								).catch(
 									function(aCatch) {
-
+										console.error('aCatch:', aCatch);
 										bootstrap[workerScopeName]._worker.postMessage([callbackPendingId, ['promise_rejected', aCatch]]);
 									}
 								);
@@ -430,7 +430,7 @@ function SIPWorker(workerScopeName, aPath, aCore=core, aFuncExecScope=BOOTSTRAP)
 								if (rez_mainthread_call.length > 2 && rez_mainthread_call[rez_mainthread_call.length-1] == SIP_TRANS_WORD && Array.isArray(rez_mainthread_call[rez_mainthread_call.length-2])) {
 									// to transfer in callback, set last element in arr to SIP_TRANS_WORD and 2nd to last element an array of the transferables									// cannot transfer on promise reject, well can, but i didnt set it up as probably makes sense not to
 									rez_mainthread_call.pop();
-
+									console.log('doiing traansfer');
 									bootstrap[workerScopeName]._worker.postMessage([callbackPendingId, rez_mainthread_call], rez_mainthread_call.pop());
 								} else {
 									bootstrap[workerScopeName]._worker.postMessage([callbackPendingId, rez_mainthread_call]);
@@ -438,7 +438,7 @@ function SIPWorker(workerScopeName, aPath, aCore=core, aFuncExecScope=BOOTSTRAP)
 							}
 						}
 					}
-
+					else { console.error('funcName', funcName, 'not in scope of aFuncExecScope') } // else is intentionally on same line with console. so on finde replace all console. lines on release it will take this out
 					////// end - my custom stuff
 				} else {
 					// find the entry in queue that matches this id, and move it to first position, otherwise i get the error `Internal error: expecting msg " + handler.id + ", " + " got " + data.id + ` --- this guy uses pop and otherwise might get the wrong id if i have multiple promises pending
@@ -449,16 +449,16 @@ function SIPWorker(workerScopeName, aPath, aCore=core, aFuncExecScope=BOOTSTRAP)
 							cQueueItemFound = true;
 							if (i !== 0) {
 								// move it to first position
-
+								var wasQueue = cQueue.slice(); // console.log('remove on production');
 								cQueue.splice(0, 0, cQueue.splice(i, 1)[0]);
-
+								console.log('ok moved q item from position', i, 'to position 0, this should fix that internal error, aMsgEvent.data.id:', aMsgEvent.data.id, 'queue is now:', cQueue, 'queue was:', wasQueue);
 							}
-
+							else { console.log('no need to reorder queue, the element of data.id:', aMsgEvent.data.id, 'is already in first position:', bootstrap[workerScopeName]._queue._array); }
 							break;
 						}
 					}
 					if (!cQueueItemFound) {
-
+						console.error('errrrror: how on earth can it not find the item with this id in the queue? i dont throw here as the .pop will throw the internal error, aMsgEvent.data.id:', aMsgEvent.data.id, 'cQueue:', cQueue);
 					}
 					origOnmessage(aMsgEvent);
 				}
