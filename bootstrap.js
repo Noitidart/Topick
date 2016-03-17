@@ -48,9 +48,9 @@ var gTimer = Cc['@mozilla.org/timer;1'].createInstance(Ci.nsITimer);
 
 // start - addon functionalities
 function startFeedFramescript(aMessageManager) {
-	xpcomSetInterval(gTimer, 1000, function() {
-		aMessageManager.sendAsyncMessage(core.addon.id, (new Date()).toLocaleString())
-	});
+	// xpcomSetInterval(gTimer, 1000, function() {
+	// 	aMessageManager.sendAsyncMessage(core.addon.id, (new Date()).toLocaleString())
+	// });
 }
 
 var HotkeyWorkerMainThreadFuncs = {

@@ -193,7 +193,7 @@ function init(objCore) { // function name init required for SIPWorker
 
 // start - addon functionality
 var gEventLoopInterval;
-const gEventLoopIntervalMS = 50;
+const gEventLoopIntervalMS = 200;
 
 function prepTerm() {
 	
@@ -582,54 +582,75 @@ function macHotKeyHandler(nextHandler, theEvent, userDataPtr) {
 }
 
 function toggleTop() {
-	console.log('toggling top');
-	var hForeground = ostypes.API('GetForegroundWindow')();
-	console.log('hForeground:', hForeground);
 	
-	if (hForeground.isNull()) {
-		console.warn('nothing in foreground, so nothing will be set to top');
-		return false;
+	switch (core.os.mname) {
+		case 'winnt':
+		case 'winmo':
+		case 'wince':
+		
+				var hForeground = ostypes.API('GetForegroundWindow')();
+				console.log('hForeground:', hForeground);
+				
+				if (hForeground.isNull()) {
+					console.warn('nothing in foreground, so nothing will be set to top');
+					return false;
+				}
+				
+				var rez_getTop = ostypes.API('GetWindowLongPtr')(hForeground, ostypes.CONST.GWL_EXSTYLE);
+				console.log('rez_getTop:', rez_getTop);
+				
+				// if rez_getTop == 0 then it failed, should test ctypes.winLastError
+				
+				// for now assume it succeeded
+				
+				// figure out what to toggle to
+				var toggleToFlag;
+				var toggleToTop; // false means to normal. true means to top
+				if (!cutils.jscEqual(ctypes_math.UInt64.and(cutils.jscGetDeepest(rez_getTop), ostypes.CONST.WS_EX_TOPMOST), 0)) {
+					// window IS always on top
+					toggleToFlag = ostypes.CONST.HWND_NOTOPMOST;
+					toggleToTop = false;
+				} else {
+					// window is NOT always on top
+					toggleToFlag = ostypes.CONST.HWND_TOPMOST;
+					toggleToTop = true;
+				}
+				
+				// toggle it
+				var rez_setTop = ostypes.API('SetWindowPos')(hForeground, toggleToFlag, 0, 0, 0, 0, ostypes.CONST.SWP_NOSIZE | ostypes.CONST.SWP_NOMOVE/* | ostypes.CONST.SWP_NOREDRAW*/); // window wasnt moved so no need for SWP_NOREDRAW, the NOMOVE and NOSIZE params make it ignore x, y, cx, and cy
+				console.log('rez_setTop:', rez_setTop);
+				
+				if (rez_setTop) {
+					if (toggleToTop) {
+						console.log('succesfully put window ALWAYS TOP');
+					} else {
+						console.log('succesfully put window to NORMAL');
+					}
+					return true;
+				} else {
+					if (toggleToTop) {
+						console.error('failed to put window ALWAYS TOP');
+					} else {
+						console.error('failed put window to NORMAL');
+					}
+					return false;
+				}
+				
+			break;
+		case 'gtk':
+			
+				//
+		
+			break;
+		case 'darwin':
+			
+				//
+			
+			break;
+		default:
+			throw new Error('Operating system, "' + OS.Constants.Sys.Name + '" is not supported');
 	}
-	
-	var rez_getTop = ostypes.API('GetWindowLongPtr')(hForeground, ostypes.CONST.GWL_EXSTYLE);
-	console.log('rez_getTop:', rez_getTop);
-	
-	// if rez_getTop == 0 then it failed, should test ctypes.winLastError
-	
-	// for now assume it succeeded
-	
-	// figure out what to toggle to
-	var toggleToFlag;
-	var toggleToTop; // false means to normal. true means to top
-	if (!cutils.jscEqual(ctypes_math.UInt64.and(cutils.jscGetDeepest(rez_getTop), ostypes.CONST.WS_EX_TOPMOST), 0)) {
-		// window IS always on top
-		toggleToFlag = ostypes.CONST.HWND_NOTOPMOST;
-		toggleToTop = false;
-	} else {
-		// window is NOT always on top
-		toggleToFlag = ostypes.CONST.HWND_TOPMOST;
-		toggleToTop = true;
-	}
-	
-	// toggle it
-	var rez_setTop = ostypes.API('SetWindowPos')(hForeground, toggleToFlag, 0, 0, 0, 0, ostypes.CONST.SWP_NOSIZE | ostypes.CONST.SWP_NOMOVE/* | ostypes.CONST.SWP_NOREDRAW*/); // window wasnt moved so no need for SWP_NOREDRAW, the NOMOVE and NOSIZE params make it ignore x, y, cx, and cy
-	console.log('rez_setTop:', rez_setTop);
-	
-	if (rez_setTop) {
-		if (toggleToTop) {
-			console.log('succesfully put window ALWAYS TOP');
-		} else {
-			console.log('succesfully put window to NORMAL');
-		}
-		return true;
-	} else {
-		if (toggleToTop) {
-			console.error('failed to put window ALWAYS TOP');
-		} else {
-			console.error('failed put window to NORMAL');
-		}
-		return false;
-	}
+
 }
 // end - addon functionality
 
