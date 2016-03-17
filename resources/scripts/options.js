@@ -19,7 +19,7 @@ function doOnContentLoad() {
 // start - server/framescript comm layer
 var bootstrapMsgListener = {
 	receiveMessage: function(aMsgEvent) {
-		console.log('FRAMESCRIPT getting message FROM BOOTSTRAP, data:', aMsgEvent.data);
+
 		document.getElementById('main_wrap').textContent = aMsgEvent.data;
 	}
 };
