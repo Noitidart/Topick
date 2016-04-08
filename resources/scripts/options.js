@@ -12,6 +12,7 @@ var gCFMM;
 document.addEventListener('DOMContentLoaded', doOnContentLoad, false);
 
 function doOnContentLoad() {
+	document.getElementById('sub_wrap').textContent = 'page loaded: ' + (new Date()).toLocaleString() + ' -- ' + (new Date()).getTime();
 	contentMMFromContentWindow_Method2(content).sendAsyncMessage(core.addon.id, 'feed me');
 }
 // end - 
