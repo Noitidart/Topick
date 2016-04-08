@@ -215,14 +215,14 @@ function prepTerm() {
 				////// console.log('rez_ungrab:', rez_ungrab);
 				////// 
 				////// ostypes.HELPER.ifOpenedXCloseDisplay();
-				for (var i=0; i<OSStuff.grabWins.length; i++) {
-					console.log('ungrabbing win i:', i, OSStuff.grabWins[i]);
-					for (var j=0; j<OSStuff.keycodesArr.length; j++) {
-						console.log('ungrabbing key:', j, OSStuff.keycodesArr[j])
-						var rez_ungrab = ostypes.API('xcb_ungrab_key')(OSStuff.conn, OSStuff.keycodesArr[j], OSStuff.grabWins[i], ostypes.CONST.XCB_MOD_MASK_ANY);
-						console.log('rez_ungrab:', rez_ungrab);
-					}
-				}
+				// for (var i=0; i<OSStuff.grabWins.length; i++) {
+				// 	console.log('ungrabbing win i:', i, OSStuff.grabWins[i]);
+				// 	for (var j=0; j<OSStuff.keycodesArr.length; j++) {
+				// 		console.log('ungrabbing key:', j, OSStuff.keycodesArr[j])
+				// 		var rez_ungrab = ostypes.API('xcb_ungrab_key')(OSStuff.conn, OSStuff.keycodesArr[j], OSStuff.grabWins[i], ostypes.CONST.XCB_MOD_MASK_ANY);
+				// 		console.log('rez_ungrab:', rez_ungrab);
+				// 	}
+				// }
 				
 				ostypes.API('xcb_disconnect')(OSStuff.conn);
 				
@@ -384,6 +384,7 @@ function registerHotkey() {
 					throw new Error('error in xcb connection!!');
 				}
 				
+				/*
 				// xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(c);
 				var keysyms = ostypes.API('xcb_key_symbols_alloc')(conn);
 				console.log('keysyms:', keysyms);
@@ -455,6 +456,31 @@ function registerHotkey() {
 				// ok screenI: 1 screens: xcb_screen_iterator_t(xcb_screen_t.ptr(ctypes.UInt64("0x7f9e1abed994")), -1, 2826816) HotkeyWorker.js:323:6
 				// ok screenI: 2 screens: xcb_screen_iterator_t(xcb_screen_t.ptr(ctypes.UInt64("0x7f9e1abed9bc")), -2, 40) HotkeyWorker.js:323:6
 				// ok screenI: 3 screens: xcb_screen_iterator_t(xcb_screen_t.ptr(ctypes.UInt64("0x7f9e1abed9e4")), -3, 40)
+				
+				var rez_flush = ostypes.API('xcb_flush')(conn);
+				console.log('rez_flush:', rez_flush);
+				*/
+				
+				// set root window to send events
+				var setup = ostypes.API('xcb_get_setup')(conn);
+				console.log('setup:', setup);
+				
+				var screens = ostypes.API('xcb_setup_roots_iterator')(setup);
+				console.log('screens:', screens);
+				
+				var screensCnt = parseInt(cutils.jscGetDeepest(screens.rem));
+				console.log('screensCnt:', screensCnt);
+				for (var i=0; i<screensCnt; i++) {
+					console.log('ok screen i:', i, 'screens:', screens, 'screens.data.contents:', screens.data.contents);
+					
+					var chgValueList = ostypes.TYPE.uint32_t.array()([
+						ostypes.CONST.XCB_EVENT_MASK_EXPOSURE | ostypes.CONST.XCB_EVENT_MASK_BUTTON_PRESS
+					]);
+					var rez_chg = ostypes.API('xcb_change_window_attributes')(conn, screens.data.contents.root, ostypes.CONST.XCB_CW_EVENT_MASK, chgValueList);
+					console.log('rez_chg:', rez_chg);
+					
+					ostypes.API('xcb_screen_next')(screens.address()); // returns undefined
+				}
 				
 				var rez_flush = ostypes.API('xcb_flush')(conn);
 				console.log('rez_flush:', rez_flush);
