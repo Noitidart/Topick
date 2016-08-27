@@ -8,31 +8,42 @@
 		<em:version>1.1b</em:version>
 		<em:type>2</em:type>
 		<em:bootstrap>true</em:bootstrap>
+		<em:multiprocessCompatible>true</em:multiprocessCompatible>
 		<em:optionsType>3</em:optionsType>
 		<em:optionsURL>about:topick</em:optionsURL>
-		<em:multiprocessCompatible>true</em:multiprocessCompatible>
 
 		<!-- Firefox -->
 		<em:targetApplication>
 			<Description>
 				<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
-				<em:minVersion>33.0</em:minVersion> <!-- due to PromiseWorker -->
-				<em:maxVersion>45.*</em:maxVersion> <!-- the latest version i tested it in -->
+				<em:minVersion>44.0</em:minVersion> <!-- not yet defined -->
+				<em:maxVersion>49.0</em:maxVersion> <!-- the latest version i tested it in -->
 			</Description>
 		</em:targetApplication>
-		
+
+		<!-- Firefox for Android
+		<em:targetApplication>
+		  <Description>
+			<em:id>{aa3c5121-dab2-40e2-81ca-7ea25febc110}</em:id>
+			<em:minVersion>44.0</em:minVersion>
+			<em:maxVersion>49.0</em:maxVersion>
+		  </Description>
+		</em:targetApplication>
+		-->
+
 		<!-- Front End MetaData -->
 		<!-- must provide default non-localized because It's used as a default on AMO. It's used as a default by the add-on manager, with the possibility of other locales overriding it. Failure to provide a non-localized name will lead to failed upload on AMO. -->
 		<em:name>Topick</em:name>
-		<em:description>System wide hotkey enabling toggling of active windows to be "always on top". </em:description>
+		<em:description>System wide hotkey enabling toggling of active windows to be "always on top".</em:description>
 		<em:creator>Noitidart</em:creator>
 		<em:contributor>Alexandre Moore for Icon</em:contributor>
+
 		<!-- start localizing - For each entry in default data MUST have equivalent in each localized block -->
 		<em:localized>
 			<Description>
 				<em:locale>en-US</em:locale>
 				<em:name>Topick</em:name>
-				<em:description>System wide hotkey enabling toggling of active windows to be "always on top". </em:description>
+				<em:description>System wide hotkey enabling toggling of active windows to be "always on top".</em:description>
 				<em:creator>Noitidart</em:creator>
 				<em:contributor>Alexandre Moore for Icon</em:contributor>
 			</Description>

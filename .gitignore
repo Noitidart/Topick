@@ -1,3 +1,9 @@
-*.xpi
+*.gitignore
 *.ignore
-.ignore-*
+*.ignore/*
+*.ignore*
+.git
+*.xpi
+*Supplement.js
+
+.serviceshtml/
