@@ -92,7 +92,8 @@ var Rows = React.createClass({
 		hotkey_pref_row_props = {
 			name:'hotkey',
 			type:'buttons',
-			icon: 'keyboard'
+			icon: 'keyboard',
+			classes: 'col-lg-5 col-lg-offset-0 col-md-6 col-md-offset-0 col-sm-8 col-sm-offset-2 col-xs-12'
 		};
 		if (!recording) {
 			Object.assign(hotkey_pref_row_props, {
@@ -136,7 +137,8 @@ var Rows = React.createClass({
 					descs: [
 						{ name:'autoupdate_desc1', reps:[ core.addon.version ] },
 						{ name:'autoupdate_desc2', reps:[ formatTime(hydrant_ex.addon_info.updateDate, { time:false }) ] }
-					]
+					],
+					classes: 'col-lg-5 col-lg-offset-1 col-md-6 col-md-offset-0 col-sm-8 col-sm-offset-2 col-xs-12'
 				}),
 				React.createElement(RowPrefContainer, hotkey_pref_row_props)
 			)
@@ -147,7 +149,7 @@ var Rows = React.createClass({
 
 var RowPref = React.createClass({
 	render: function() {
-		var { type, min, max, buttons, name, descs, icon } = this.props; // attributes
+		var { type, min, max, buttons, name, descs, icon, classes } = this.props; // attributes
 		var { value } = this.props; // mapped state
 		var { setValue } = this.props; // dispatchers
 
@@ -159,6 +161,7 @@ var RowPref = React.createClass({
 		 * name - string; default=ERROR; used in `formatStringFromNameCore` to get label. also used with setPref
 		 * descs - array of objects - [{name:,reps:['hi']}] - `name` is key in `main` for `formatStringFromNameCore`. and reps is optional, defaults to undefined, you should set to array for `formatStringFromNameCore`
 		 * icon - string; default=undefined; use in class as `icon-keyboard`
+		 * classes - string; default=undefined; addtional classes to add to the block(i call it row but i should have called it block)
 		 */
 
 
@@ -175,7 +178,7 @@ var RowPref = React.createClass({
 			number: { defaultValue:value, id:name, dispatcher:setValue, min, max, parent_noactions:true }
 		};
 
-		return React.createElement('div', { className:'col-lg-5 col-lg-offset-1 col-md-6 col-md-offset-0 col-sm-8 col-sm-offset-2 col-xs-12' },
+		return React.createElement('div', { className:classes },
 			React.createElement('div', { className:'grey-box-icon' },
 				React.createElement('div', { className:'icon-box-top grey-box-icon-pos' },
 					React.createElement('i', { className:'fontawesome-icon medium circle-white center icon-' + icon })
