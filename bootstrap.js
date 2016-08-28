@@ -192,6 +192,7 @@ function startRecording(aArg, aReportProgress) {
 					console.error('failed SetWindowsHookEx, winLastError:', ctypes.winLastError);
 					deferredmain.resolve();
 				} else {
+					OSStuff.mods = {};
 					OSStuff.hook = rez_hook;
 					OSStuff.aReportProgress_recording = aReportProgress; // this will be used by `winRecordingCallback`
 					OSStuff.deferredmain_recording = deferredmain; // this should now be resolved by `stopRecording`
@@ -222,6 +223,7 @@ function stopRecording() {
 				delete OSStuff.hook;
 				delete OSStuff.aReportProgress_recording;
 				delete OSStuff.deferredmain_recording;
+				delete OSStuff.mods;
 
 			break;
 	}
@@ -257,8 +259,65 @@ function winRecordingCallback(nCode, wParam, lParam) {
 		var vkCode = parseInt(cutils.jscGetDeepest(khs.contents.vkCode));
 		var flags = khs.contents.flags;
 
-		if (keystate) {
-			// key is down
+		var ismod = false;
+		var modname; // set to key it should be in `mods` object
+		switch (vkCode) {
+			case ostypes.CONST.VK_LSHIFT:
+				modname = 'lshift';
+				ismod = true;
+				break;
+			case ostypes.CONST.VK_RSHIFT:
+				modname = 'rshift';
+				ismod = true;
+				break;
+			case ostypes.CONST.VK_LCONTROL:
+				modname = 'lcontrol';
+				ismod = true;
+				break;
+			case ostypes.CONST.VK_RCONTROL:
+				modname = 'rcontrol';
+				ismod = true;
+				break;
+			case ostypes.CONST.VK_LWIN:
+				modname = 'lmeta';
+				ismod = true;
+				break;
+			case ostypes.CONST.VK_RWIN:
+				modname = 'rmeta';
+				ismod = true;
+				break;
+			case ostypes.CONST.VK_LMENU:
+				modname = 'lalt';
+				ismod = true;
+				break;
+			case ostypes.CONST.VK_RMENU:
+				modname = 'ralt';
+				ismod = true;
+				break;
+			case ostypes.CONST.VK_CAPITAL:
+				ismod = true;
+		}
+
+		if (modname) {
+			// so obviously is mod
+			if (keystate) {
+				// key is down
+				OSStuff.mods[modname] = true;
+			} else {
+				// key is up
+				delete OSStuff.mods[modname];
+			}
+			var mods = {};
+			for (var mod in OSStuff.mods) {
+				mods[mod.substr(1)] = true;
+			}
+			OSStuff.aReportProgress_recording({
+				recording: {
+					mods
+				}
+			});
+		} else if (!ismod && keystate) {
+			// key is down and is not a modifier key
 			if (cutils.jscEqual(vkCode, ostypes.CONST.VK_ESCAPE)) {
 				stopRecording();
 			} else {
@@ -275,22 +334,24 @@ function winRecordingCallback(nCode, wParam, lParam) {
 				}
 
 				if (keyname) {
-					// TODO: check if keyname is a modifier key
-					var recording = {
-						name: keyname,
-						code: vkCode
-					};
+					var mods = {};
+					for (var mod in OSStuff.mods) {
+						mods[mod.substr(1)] = true;
+					}
 					OSStuff.aReportProgress_recording({
-						recording
+						recording: {
+							name: keyname,
+							code: vkCode,
+							mods
+						}
 					});
 					stopRecording();
-				} else {
-					console.error('ERROR: could not find keyname for vkCode:', vkCode);
 				}
+				else { console.error('ERROR: could not find keyname for vkCode:', vkCode) }
 			}
 		}
 
-		return -1;
+		return 1; // block the key
 	} else {
 		console.error('ERROR: nCode is not 0 NOR less than 0!!! what on earth? docs never said anything about this. i dont think this should ever happen!', 'nCode:', nCode);
 		return ostypes.API('CallNextHookEx')(null, nCode, wParam, lParam);

@@ -83,6 +83,16 @@ var Header = React.createClass({
 	}
 });
 
+function buildHotkeyStr(aHotkeyObj) {
+	var pieces = [];
+	if (aHotkeyObj.mods) {
+		for (var modname in aHotkeyObj.mods) {
+			pieces.push(modname);
+		}
+	}
+	pieces.push(aHotkeyObj.name || '???');
+	return pieces.join(' + ');
+}
 var Rows = React.createClass({
 	render: function() {
 		var { recording, hotkey } = this.props; // mapped state
@@ -96,21 +106,23 @@ var Rows = React.createClass({
 			classes: 'col-lg-5 col-lg-offset-0 col-md-6 col-md-offset-0 col-sm-8 col-sm-offset-2 col-xs-12'
 		};
 		if (!recording) {
+			var hotkey_str = [];
+
 			Object.assign(hotkey_pref_row_props, {
 				buttons: [
 					{name:'change', value:'change'}
 				],
 				descs: [
-					{ name:'hotkey_desc1', reps:[ hydrant_ex.prefs.hotkey.name ] }
+					{ name:'hotkey_desc1', reps:[ buildHotkeyStr(hydrant_ex.prefs.hotkey) ] }
 				]
 			});
 		} else {
-			var hotkey_changing_desc_name;
-			if (!recording.name && !recording.mods) {
+			var hotkey_changing_rep;
+			if (!recording.name && (!recording.mods || !Object.keys(recording.mods).length)) {
 				// that means it just started. so show "Press any key to record". as after mutate, `name` is made `undefined` while no name was set and if say just mods pushed
 				hotkey_changing_rep = formatStringFromNameCore('hotkey_changing_start', 'main');
 			} else {
-				hotkey_changing_rep = 'mod + mod + ?';
+				hotkey_changing_rep = buildHotkeyStr(recording);
 			}
 
 			Object.assign(hotkey_pref_row_props, {
