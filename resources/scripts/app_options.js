@@ -13,7 +13,7 @@ initAppPage = function(aArg) {
 
 	gAppPageComponents = [
 		React.createElement(Header),
-		React.createElement(Rows)
+		React.createElement(RowsContainer)
 	];
 
 }
@@ -75,18 +75,9 @@ shouldUpdateHydrantEx = function() {
 // REACT COMPONENTS - PRESENTATIONAL
 var Header = React.createClass({
 	render: function() {
-		return React.createElement(ReactBootstrap.Navbar, undefined,
-			React.createElement(ReactBootstrap.Navbar.Header, undefined,
-				React.createElement(ReactBootstrap.Navbar.Brand, undefined,
-					React.createElement('a', undefined,
-						formatStringFromNameCore('addon_name', 'main')
-					)
-				)
-			),
-			React.createElement(ReactBootstrap.Navbar.Collapse, undefined,
-				React.createElement(ReactBootstrap.Navbar.Text, { pullRight:true },
-					formatStringFromNameCore('options', 'main')
-				)
+		return React.createElement('h1', undefined,
+			React.createElement('span', undefined,
+				formatStringFromNameCore('addon_name', 'main')
 			)
 		);
 	}
@@ -94,11 +85,58 @@ var Header = React.createClass({
 
 var Rows = React.createClass({
 	render: function() {
-		return React.createElement(ReactBootstrap.Grid, { className:'pref-rows' },
-			React.createElement(RowPrefContainer, { name:'autoupdate', type:'buttons', buttons:[{name:'off',value:0},{name:'on',value:2}], setter:setAddonInfo, locale_replace:[core.addon.version, formatTime(hydrant_ex.addon_info.updateDate, { time:false })] }),
-			React.createElement(RowPrefContainer, { name:'holdtime', type:'number', min:100 }),
-			React.createElement(RowPrefContainer, { name:'holddist', type:'number', min:0 }),
-			React.createElement(RowPrefContainer, { name:'zoommargin', type:'number', min:0 })
+		var { recording, hotkey } = this.props; // mapped state
+
+		// determine display for hotkey_pref_row depending on `recording` state
+		var hotkey_pref_row;
+		if (!recording) {
+			hotkey_pref_row = React.createElement(RowPrefContainer, {
+				name:'hotkey',
+				type:'buttons',
+				buttons: [
+					{name:'change', value:'change'}
+				],
+				descs: [
+					{ name:'hotkey_desc1', reps:[ hydrant_ex.prefs.hotkey.name ] }
+				]
+			});
+		} else {
+			var hotkey_changing_desc_name;
+			if (recording.name === null) {
+				// that means it just started. so show "Press any key to record". as after mutate, `name` is made `undefined` while no name was set and if say just mods pushed
+				hotkey_changing_rep = formatStringFromNameCore('hotkey_changing_start', 'main');
+			} else {
+				hotkey_changing_rep = 'mod + mod + ?';
+			}
+			hotkey_pref_row = React.createElement(RowPrefContainer, {
+				name:'hotkey',
+				type:'buttons',
+				buttons: [
+					{name:'listening', value:hotkey} // value hotkey - so it shows it as "active"
+				],
+				descs: [
+					{ name:'hotkey_changing_desc1', reps:[hotkey_changing_rep] }
+				]
+			});
+		}
+
+		return React.createElement('div', { className:'container' },
+			React.createElement('div', { className:'row' },
+				React.createElement(RowPrefContainer, {
+					name:'autoupdate',
+					type:'buttons',
+					buttons: [
+						{ name:'off', value:0 },
+						{ name:'on', value:2 }
+					],
+					setter:setAddonInfo,
+					descs: [
+						{ name:'autoupdate_desc1', reps:[ core.addon.version ] },
+						{ name:'autoupdate_desc2', reps:[ formatTime(hydrant_ex.addon_info.updateDate, { time:false }) ] }
+					]
+				}),
+				hotkey_pref_row
+			)
 		);
 	}
 });
@@ -106,7 +144,7 @@ var Rows = React.createClass({
 
 var RowPref = React.createClass({
 	render: function() {
-		var { type, min, max, buttons, name, locale_replace } = this.props; // attributes
+		var { type, min, max, buttons, name, descs } = this.props; // attributes
 		var { value } = this.props; // mapped state
 		var { setValue } = this.props; // dispatchers
 
@@ -115,8 +153,8 @@ var RowPref = React.createClass({
 		 * min, max - number; default=undefined; only if type "number". if undefiend no limit.
 		 * buttons - array; default=ERROR; only if type "buttons". array of objects. `name` is l10n key of button caption, and `value` is value. the array is sorted and displayed in alpha order after localization.
 		 * setter - function; default=setPref.bind(null, name); should be a dispatcher, as redux will wrap this in `disspatch()`
-		 * name - string; default=ERROR; used in `formatStringFromNameCore` to get label and description. also used with setPref
-		 * locale_replace - array for use with `formatStringFromNameCore` when getting desc
+		 * name - string; default=ERROR; used in `formatStringFromNameCore` to get label. also used with setPref
+		 * descs - array of objects - [{name:,reps:['hi']}] - `name` is key in `main` for `formatStringFromNameCore`. and reps is optional, defaults to undefined, you should set to array for `formatStringFromNameCore`
 		 */
 
 
@@ -133,14 +171,21 @@ var RowPref = React.createClass({
 			number: { defaultValue:value, id:name, dispatcher:setValue, min, max, parent_noactions:true }
 		};
 
-		return React.createElement(ReactBootstrap.Row, undefined,
-			React.createElement(ReactBootstrap.Col, { lg:2, md:2, sm:3, xs:8 },
-				formatStringFromNameCore(name, 'main')
-			),
-			React.createElement(ReactBootstrap.Col, { lg:8, md:8, sm:7, xsHidden:true },
-				formatStringFromNameCore(name + '_desc', 'main', locale_replace)
-			),
-			React.createElement(ReactBootstrap.Col, { lg:2, md:2, sm:2, xs:4 },
+		return React.createElement('div', { className:'col-lg-5 col-lg-offset-1 col-md-6 col-md-offset-0 col-sm-8 col-sm-offset-2 col-xs-12' },
+			React.createElement('div', { className:'grey-box-icon' },
+				React.createElement('div', { className:'icon-box-top grey-box-icon-pos' },
+					React.createElement('i', { className:'fontawesome-icon medium circle-white center icon-gears' })
+				),
+				React.createElement('h4', undefined,
+					formatStringFromNameCore(name, 'main')
+				),
+				React.createElement('p', undefined,
+					descs.map( el =>
+						React.createElement('span', undefined,
+							formatStringFromNameCore(el.name, 'main', el.reps)
+						)
+					)
+				),
 				React.createElement(type_to_rcls[type], type_to_props[type])
 			)
 		);
@@ -158,8 +203,34 @@ var ButtonGroup = React.createClass({
 		// sort buttons after localizing it
 		var buttons_sorted = buttons.map(el=>Object.assign({}, el, {locale:formatStringFromNameCore(el.name, 'main')})).sort((a,b)=>a.locale.localeCompare(b.locale));
 
-		return React.createElement(ReactBootstrap.ButtonGroup, { justified:true },
-			buttons_sorted.map( el => React.createElement(ReactBootstrap.Button, { href:'#', active:value===el.value, onClick:setValue.bind(null, el.value) }, el.locale) )
+		return React.createElement('ul', { className:'nav nav-pills nav-justified' },
+			buttons_sorted.map( el => React.createElement(ButtonGroupBtn, Object.assign({ active_value:value, setValue }, el)) )
+		)
+	}
+});
+
+var ButtonGroupBtn = React.createClass({
+	onClick: function(e) {
+		var { setValue, value } = this.props;
+
+		if (value == 'change') {
+			// special for "Change" hotkey
+			store.dispatch(startRecording());
+		} else {
+			// generic
+			setValue(value);
+		}
+
+		e.stopPropagation();
+		e.preventDefault();
+	},
+	render: function() {
+		var { active_value, setValue, name, value, locale } = this.props;
+
+		return React.createElement('li', { role:'presentation', className:(active_value === value ? 'active' : undefined) },
+			React.createElement('a', { href:'#', onClick:this.onClick },
+				locale
+			)
 		)
 	}
 });
@@ -449,10 +520,23 @@ var RowPrefContainer = ReactRedux.connect(
 	}
 )(RowPref);
 
+var RowsContainer = ReactRedux.connect(
+	function mapStateToProps(state, ownProps) {
+		return {
+			recording: state.recording,
+			hotkey: state.prefs.hotkey
+		}
+	}
+)(Rows);
+
 // ACTIONS
 const SET_PREF = 'SET_PREF';
 const SET_ADDON_INFO = 'SET_ADDON_INFO';
 const SET_MAIN_KEYS = 'SET_MAIN_KEYS';
+
+const START_RECORDING = 'START_RECORDING';
+const CANCEL_RECORDING = 'CANCEL_RECORDING';
+const MUTATE_RECORDING = 'MUTATE_RECORDING'; // no need for ACCEPT_RECORDING as when it mutates to include a name, it is accepted
 
 // ACTION CREATORS
 function setPref(pref, value) {
@@ -478,9 +562,85 @@ function setMainKeys(obj_of_mainkeys) {
 	}
 }
 
+function onRecordingKeyDown(e) {
+	if (!e.repeat) {
+		console.log('key down: "' + e.key + '"');
+		if (e.key == 'Escape') {
+			store.dispatch(cancelRecording());
+		} else {
+			store.dispatch(mutateRecording({alt:true}));
+		}
+	}
+	else { console.warn('is key repeat') }
+
+	e.preventDefault();
+	e.stopPropagation();
+}
+function startRecording() {
+	window.addEventListener('keydown', onRecordingKeyDown, false);
+	setTimeout(()=>document.activeElement.blur(), 0); // so it doesnt have the `:focus` styling on the button, but setTimeout because i want it to apply the `.active` styling as i set `value` of the `buttons` entry to `hotkey` so it lights up "Listening..."
+
+	var recording = { // matches the object structure of prefs.hotkey
+		name: null,
+		mods: {
+			alt: false,
+			control: false,
+			meta: false,
+			shift: false
+		}
+	};
+	return {
+		type: START_RECORDING,
+		recording
+	}
+}
+
+function mutateRecording(mods, name) {
+	return {
+		type: MUTATE_RECORDING,
+		recording: {
+			name,
+			mods
+		}
+	}
+}
+
+function cancelRecording() {
+	window.removeEventListener('keydown', onRecordingKeyDown, false);
+	return {
+		type: CANCEL_RECORDING
+	}
+}
+
 // REDUCERS
+function recording(state=null, action) {
+	switch (action.type) {
+		case START_RECORDING:
+				return action.recording;
+			break;
+		case MUTATE_RECORDING:
+				var { recording } = action;
+				if (recording.name) {
+					// link01381 once name is set, it is like canceling recording, but really it is accepting it as in `prefs` reducer it sets the pref
+					window.removeEventListener('keydown', onRecordingKeyDown, false);
+					return null;
+				} else {
+					return recording;
+				}
+			break;
+		case CANCEL_RECORDING:
+				return null;
+			break;
+		default:
+			return state;
+	}
+}
 function prefs(state=hydrant_ex.prefs, action) {
 	switch (action.type) {
+		case MUTATE_RECORDING:
+				var { recording } = action;
+				return recording.name ? Object.assign({}, state, { hotkey:recording }) : state; // see link01381 - when name is set it is "accepting the recording"
+			break;
 		case SET_PREF:
 			var { pref, value } = action;
 			return Object.assign({}, state, {
@@ -516,7 +676,8 @@ function addon_info(state=hydrant_ex.addon_info, action) {
 // `var` so app.js can access it
 app = Redux.combineReducers({
 	prefs,
-	addon_info
+	addon_info,
+	recording
 });
 
 // end - react-redux

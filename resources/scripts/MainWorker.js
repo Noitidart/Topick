@@ -169,6 +169,7 @@ var gFilestoreDefault = {
 	prefs: {
 		hotkey: {  // TODO: needs to be os dependent
 			code: 0,
+			name: '', // the physical thing that is shown on keyboard, my best guess at it. like "a" would be "a", "Escape" would be "Esc"
 			mods: {}
 		}
 	}
