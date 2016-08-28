@@ -88,11 +88,14 @@ var Rows = React.createClass({
 		var { recording, hotkey } = this.props; // mapped state
 
 		// determine display for hotkey_pref_row depending on `recording` state
-		var hotkey_pref_row;
+		var hotkey_pref_row_props;
+		hotkey_pref_row_props = {
+			name:'hotkey',
+			type:'buttons',
+			icon: 'keyboard'
+		};
 		if (!recording) {
-			hotkey_pref_row = React.createElement(RowPrefContainer, {
-				name:'hotkey',
-				type:'buttons',
+			Object.assign(hotkey_pref_row_props, {
 				buttons: [
 					{name:'change', value:'change'}
 				],
@@ -108,9 +111,8 @@ var Rows = React.createClass({
 			} else {
 				hotkey_changing_rep = 'mod + mod + ?';
 			}
-			hotkey_pref_row = React.createElement(RowPrefContainer, {
-				name:'hotkey',
-				type:'buttons',
+
+			Object.assign(hotkey_pref_row_props, {
 				buttons: [
 					{name:'listening', value:hotkey} // value hotkey - so it shows it as "active"
 				],
@@ -125,6 +127,7 @@ var Rows = React.createClass({
 				React.createElement(RowPrefContainer, {
 					name:'autoupdate',
 					type:'buttons',
+					icon: 'gears',
 					buttons: [
 						{ name:'off', value:0 },
 						{ name:'on', value:2 }
@@ -135,7 +138,7 @@ var Rows = React.createClass({
 						{ name:'autoupdate_desc2', reps:[ formatTime(hydrant_ex.addon_info.updateDate, { time:false }) ] }
 					]
 				}),
-				hotkey_pref_row
+				React.createElement(RowPrefContainer, hotkey_pref_row_props)
 			)
 		);
 	}
@@ -144,7 +147,7 @@ var Rows = React.createClass({
 
 var RowPref = React.createClass({
 	render: function() {
-		var { type, min, max, buttons, name, descs } = this.props; // attributes
+		var { type, min, max, buttons, name, descs, icon } = this.props; // attributes
 		var { value } = this.props; // mapped state
 		var { setValue } = this.props; // dispatchers
 
@@ -155,6 +158,7 @@ var RowPref = React.createClass({
 		 * setter - function; default=setPref.bind(null, name); should be a dispatcher, as redux will wrap this in `disspatch()`
 		 * name - string; default=ERROR; used in `formatStringFromNameCore` to get label. also used with setPref
 		 * descs - array of objects - [{name:,reps:['hi']}] - `name` is key in `main` for `formatStringFromNameCore`. and reps is optional, defaults to undefined, you should set to array for `formatStringFromNameCore`
+		 * icon - string; default=undefined; use in class as `icon-keyboard`
 		 */
 
 
@@ -174,7 +178,7 @@ var RowPref = React.createClass({
 		return React.createElement('div', { className:'col-lg-5 col-lg-offset-1 col-md-6 col-md-offset-0 col-sm-8 col-sm-offset-2 col-xs-12' },
 			React.createElement('div', { className:'grey-box-icon' },
 				React.createElement('div', { className:'icon-box-top grey-box-icon-pos' },
-					React.createElement('i', { className:'fontawesome-icon medium circle-white center icon-gears' })
+					React.createElement('i', { className:'fontawesome-icon medium circle-white center icon-' + icon })
 				),
 				React.createElement('h4', undefined,
 					formatStringFromNameCore(name, 'main')
