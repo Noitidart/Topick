@@ -102,7 +102,7 @@ var Rows = React.createClass({
 			});
 		} else {
 			var hotkey_changing_desc_name;
-			if (recording.name === null) {
+			if (!recording.name && !recording.mods) {
 				// that means it just started. so show "Press any key to record". as after mutate, `name` is made `undefined` while no name was set and if say just mods pushed
 				hotkey_changing_rep = formatStringFromNameCore('hotkey_changing_start', 'main');
 			} else {
@@ -213,7 +213,9 @@ var ButtonGroupBtn = React.createClass({
 	onClick: function(e) {
 		var { setValue, value } = this.props;
 
-		if (value == 'change') {
+		if (typeof(value) == 'object') {
+			console.warn('its in listening mode');
+		} else if (value == 'change') {
 			// special for "Change" hotkey
 			store.dispatch(startRecording());
 		} else {
@@ -582,12 +584,13 @@ function startRecording() {
 
 	var recording = { // matches the object structure of prefs.hotkey
 		name: null,
-		mods: {
-			alt: false,
-			control: false,
-			meta: false,
-			shift: false
-		}
+		mods: null
+		// {
+			// alt: false,
+			// control: false,
+			// meta: false,
+			// shift: false
+		// }
 	};
 	return {
 		type: START_RECORDING,
