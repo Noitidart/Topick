@@ -83,6 +83,8 @@ function startup(aData, aReason) {
 
 	gWkComm = new Comm.server.worker(core.addon.path.scripts + 'MainWorker.js?' + core.addon.cache_key, ()=>core, function(aArg, aComm) {
 
+		core = aArg.core;
+
 		gFsComm = new Comm.server.framescript(core.addon.id);
 
 		Services.mm.loadFrameScript(core.addon.path.scripts + 'MainFramescript.js?' + core.addon.cache_key, true);
@@ -163,7 +165,164 @@ function getAddonInfo(aAddonId=core.addon.id) {
 	return deferredmain_getaddoninfo.promise;
 }
 
+var gIsRecording = false;
+function startRecording(aArg, aReportProgress) {
+
+	var deferredmain = new Deferred();
+
+	initOstypes();
+
+	if (gIsRecording) {
+		console.error('already recording!');
+		deferredmain.resolve();
+		return deferredmain.promise;
+	}
+
+	gIsRecording = true;
+
+	switch (core.os.mname) {
+		case 'winnt':
+
+				winRecordingCallback_c = ostypes.TYPE.LowLevelKeyboardProc.ptr(winRecordingCallback);
+
+				var rez_hook = ostypes.API('SetWindowsHookEx')(ostypes.CONST.WH_KEYBOARD_LL, winRecordingCallback_c, null, 0);
+				console.info('rez_hook:', rez_hook, rez_hook.toString());
+				if (rez_hook.isNull()) {
+					gIsRecording = false;
+					console.error('failed SetWindowsHookEx, winLastError:', ctypes.winLastError);
+					deferredmain.resolve();
+				} else {
+					OSStuff.hook = rez_hook;
+					OSStuff.aReportProgress_recording = aReportProgress; // this will be used by `winRecordingCallback`
+					OSStuff.deferredmain_recording = deferredmain; // this should now be resolved by `stopRecording`
+				}
+
+			break;
+	}
+
+	return deferredmain.promise;
+}
+
+function stopRecording() {
+	if (!gIsRecording) {
+		console.error('already IS NOT recording!');
+		return;
+	}
+
+	gIsRecording = false;
+
+	switch (core.os.mname) {
+		case 'winnt':
+
+				var rez_unhook = ostypes.API('UnhookWindowsHookEx')(OSStuff.hook);
+				console.log('rez_unhook:', rez_unhook, rez_unhook.toString());
+
+				OSStuff.deferredmain_recording.resolve();
+
+				delete OSStuff.hook;
+				delete OSStuff.aReportProgress_recording;
+				delete OSStuff.deferredmain_recording;
+
+			break;
+	}
+}
+
+var winRecordingCallback_c;
+function winRecordingCallback(nCode, wParam, lParam) {
+	// callback for windows key listening
+
+	nCode = parseInt(cutils.jscGetDeepest(nCode));
+	if (nCode < 0) {
+		// must return CallNextHookEx
+		return ostypes.API('CallNextHookEx')(null, nCode, wParam, lParam);
+	} else if (nCode == 0) {
+		var khs = ostypes.TYPE.KBDLLHOOKSTRUCT.ptr(ctypes.UInt64(lParam));
+
+		var keystate; // 0 for up, 1 for down
+		wParam = parseInt(cutils.jscGetDeepest(wParam));
+		switch (wParam) {
+			case ostypes.CONST.WM_KEYDOWN:
+			case ostypes.CONST.WM_SYSKEYDOWN:
+					keystate = 1;
+				break;
+			case ostypes.CONST.WM_KEYUP:
+			case ostypes.CONST.WM_SYSKEYUP:
+					keystate = 0;
+				break;
+			default:
+				console.error('ERROR: got key event but cannot determine if its up or down keystate');
+				return ostypes.API('CallNextHookEx')(null, nCode, wParam, lParam);
+		}
+
+		var vkCode = parseInt(cutils.jscGetDeepest(khs.contents.vkCode));
+		var flags = khs.contents.flags;
+
+		if (keystate) {
+			// key is down
+			if (cutils.jscEqual(vkCode, ostypes.CONST.VK_ESCAPE)) {
+				stopRecording();
+			} else {
+				var keyname;
+				var consts = ostypes.CONST;
+				for (var c in consts) {
+					if (c.startsWith('VK_') || c.startsWith('vk_')) {
+						var val = consts[c];
+						if (val === vkCode) {
+							keyname = c.substr(3);
+							break;
+						}
+					}
+				}
+
+				if (keyname) {
+					// TODO: check if keyname is a modifier key
+					var recording = {
+						name: keyname,
+						code: vkCode
+					};
+					OSStuff.aReportProgress_recording({
+						recording
+					});
+					stopRecording();
+				} else {
+					console.error('ERROR: could not find keyname for vkCode:', vkCode);
+				}
+			}
+		}
+
+		return -1;
+	} else {
+		console.error('ERROR: nCode is not 0 NOR less than 0!!! what on earth? docs never said anything about this. i dont think this should ever happen!', 'nCode:', nCode);
+		return ostypes.API('CallNextHookEx')(null, nCode, wParam, lParam);
+	}
+}
+
 // start - common helper functions
+var ostypes;
+var OSStuff = {};
+function initOstypes() {
+	if (!ostypes) {
+		if (typeof(ctypes) == 'undefined') {
+			Cu.import('resource://gre/modules/ctypes.jsm');
+		}
+
+		Services.scriptloader.loadSubScript(core.addon.path.scripts + 'ostypes/cutils.jsm'); // need to load cutils first as ostypes_mac uses it for HollowStructure
+		Services.scriptloader.loadSubScript(core.addon.path.scripts + 'ostypes/ctypes_math.jsm');
+		switch (Services.appinfo.OS.toLowerCase()) {
+			case 'winnt':
+			case 'winmo':
+			case 'wince':
+					Services.scriptloader.loadSubScript(core.addon.path.scripts + 'ostypes/ostypes_win.jsm');
+				break;
+			case 'darwin':
+					Services.scriptloader.loadSubScript(core.addon.path.scripts + 'ostypes/ostypes_mac.jsm');
+				break;
+			default:
+				// assume xcb (*nix/bsd)
+				Services.scriptloader.loadSubScript(core.addon.path.scripts + 'ostypes/ostypes_x11.jsm');
+		}
+	}
+}
 function formatStringFromNameCore(aLocalizableStr, aLoalizedKeyInCoreAddonL10n, aReplacements) {
 	// 051916 update - made it core.addon.l10n based
     // formatStringFromNameCore is formating only version of the worker version of formatStringFromName, it is based on core.addon.l10n cache

@@ -1,6 +1,0 @@
-<!ENTITY topick.options.addon-name 'Topick'>
-<!ENTITY topick.options.addon-desc 'System wide hotkey enabling toggling of active windows to be "always on top".'>
-
-<!ENTITY topick.options.page-title 'Topick | Options'>
-<!ENTITY topick.options.page-name 'Options'>
-<!ENTITY topick.options.page-desc 'Configure and customize settings'>

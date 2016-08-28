@@ -571,23 +571,42 @@ function setMainKeys(obj_of_mainkeys) {
 	}
 }
 
-function onRecordingKeyDown(e) {
-	if (!e.repeat) {
-		console.log('key down: "' + e.key + '"');
-		if (e.key == 'Escape') {
-			store.dispatch(cancelRecording());
-		} else {
-			store.dispatch(mutateRecording({alt:true}));
-		}
-	}
-	else { console.warn('is key repeat') }
+// function onRecordingKeyDown(e) {
+// 	if (!e.repeat) {
+// 		console.log('key down: "' + e.key + '"');
+// 		if (e.key == 'Escape') {
+// 			store.dispatch(cancelRecording());
+// 		} else {
+// 			store.dispatch(mutateRecording({alt:true}));
+// 		}
+// 	}
+// 	else { console.warn('is key repeat') }
+//
+// 	e.preventDefault();
+// 	e.stopPropagation();
+// }
+var gIsRecording = false;
 
-	e.preventDefault();
-	e.stopPropagation();
+function startRecordingBootstrapCallback(aArg) {
+	var { __PROGRESS, recording } = aArg || {};
+	// recording - only there when progress
+	if (__PROGRESS) {
+		console.log('got recording:', recording);
+		store.dispatch(mutateRecording(recording));
+	} else {
+		store.dispatch(cancelRecording());
+	}
 }
+
 function startRecording() {
-	window.addEventListener('keydown', onRecordingKeyDown, false);
+	if (gIsRecording) {
+		console.error('already recording!');
+		return undefined;
+	}
+	gIsRecording = true;
+	// window.addEventListener('keydown', onRecordingKeyDown, false);
 	setTimeout(()=>document.activeElement.blur(), 0); // so it doesnt have the `:focus` styling on the button, but setTimeout because i want it to apply the `.active` styling as i set `value` of the `buttons` entry to `hotkey` so it lights up "Listening..."
+	callInBootstrap('startRecording', undefined, startRecordingBootstrapCallback); // dispatch `cancelRecording` in case.
 
 	var recording = { // matches the object structure of prefs.hotkey
 		name: null,
@@ -605,18 +624,16 @@ function startRecording() {
 	}
 }
 
-function mutateRecording(mods, name) {
+function mutateRecording(recording) {
 	return {
 		type: MUTATE_RECORDING,
-		recording: {
-			name,
-			mods
-		}
+		recording
 	}
 }
 
 function cancelRecording() {
-	window.removeEventListener('keydown', onRecordingKeyDown, false);
+	gIsRecording = false;
+	// window.removeEventListener('keydown', onRecordingKeyDown, false);
 	return {
 		type: CANCEL_RECORDING
 	}
@@ -630,13 +647,7 @@ function recording(state=null, action) {
 			break;
 		case MUTATE_RECORDING:
 				var { recording } = action;
-				if (recording.name) {
-					// link01381 once name is set, it is like canceling recording, but really it is accepting it as in `prefs` reducer it sets the pref
-					window.removeEventListener('keydown', onRecordingKeyDown, false);
-					return null;
-				} else {
-					return recording;
-				}
+				return recording;
 			break;
 		case CANCEL_RECORDING:
 				return null;
