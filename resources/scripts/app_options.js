@@ -234,7 +234,7 @@ var ButtonGroupBtn = React.createClass({
 		var { active_value, setValue, name, value, locale } = this.props;
 
 		return React.createElement('li', { role:'presentation', className:(active_value === value ? 'active' : undefined) },
-			React.createElement('a', { href:'#', onClick:this.onClick },
+			React.createElement('a', { onClick:this.onClick },
 				locale
 			)
 		)

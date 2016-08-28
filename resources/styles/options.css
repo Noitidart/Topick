@@ -485,3 +485,7 @@ html {
 
 }
 /* end - body */
+
+a {
+	cursor: pointer;
+}
