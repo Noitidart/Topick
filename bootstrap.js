@@ -216,6 +216,19 @@ function startRecording(aArg, aReportProgress) {
 				OSStuff.deferredmain_recording = deferredmain;
 
 			break;
+		case 'gtk':
+
+				gtkRecordingCallback_c = ostypes.TYPE.GdkFilterFunc(gtkRecordingCallback);
+				var win = Services.wm.getMostRecentWindow('navigator:browser');
+				var gdkwinptr = ostypes.TYPE.GdkWindow.ptr(ctypes.UInt64(getNativeHandlePtrStr(win)));
+				ostypes.API('gdk_window_add_filter')(gdkwinptr, gtkRecordingCallback_c, null);
+
+				OSStuff.gdkwinptr = gdkwinptr;
+				OSStuff.mods = {};
+				OSStuff.aReportProgress_recording = aReportProgress;
+				OSStuff.deferredmain_recording = deferredmain;
+
+			break;
 	}
 
 	return deferredmain.promise;
@@ -249,6 +262,13 @@ function stopRecording() {
 				delete OSStuff.add;
 				delete OSStuff.block_c;
 				macRecordingCallback_c = null;
+
+			break;
+		case 'gtk':
+
+				ostypes.API('gdk_window_remove_filter')(OSStuff.gdkwinptr, gtkRecordingCallback_c, null);
+				gtkRecordingCallback_c = null;
+				delete OSStuff.gdkwinptr;
 
 			break;
 	}
@@ -325,8 +345,8 @@ function winRecordingCallback(nCode, wParam, lParam) {
 				modname = 'ralt';
 				ismod = true;
 				break;
-			case ostypes.CONST.VK_CAPITAL:
-				ismod = true;
+			// case ostypes.CONST.VK_CAPITAL:
+			// 	ismod = true;
 		}
 
 		if (modname) {
@@ -431,6 +451,9 @@ function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 		console.info('keyCode:', keyCode);
 		keyCode = parseInt(cutils.jscGetDeepest(keyCode));
 
+		// var characters = ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('characters'));
+		// var characters_js = ostypes.HELPER.readNSString(characters);
+		// console.log('characters:', characters, 'characters_js:', characters_js);
 		startsWithTest = a_const => a_const.startsWith('KEY_');
 
 	} else {
@@ -485,6 +508,148 @@ function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 	return null;
 }
 
+var gtkRecordingCallback_c;
+function gtkRecordingCallback(xeventPtr, eventPtr, data) {
+	// if (xeventPtr.contents.bytes[0] !== ostypes.CONST.KeyPress && xeventPtr.contents.bytes[0] !== ostypes.CONST.KeyRelease) {
+	// 	return ostypes.CONST.GDK_FILTER_CONTINUE;
+	// } else {
+	// 	console.log('xeventPtr.contents.bytes:', xeventPtr.contents.bytes, xeventPtr.contents.bytes.toString());
+	// 	return ostypes.CONST.GDK_FILTER_CONTINUE;
+	// }
+	var type = parseInt(cutils.jscGetDeepest(xeventPtr.contents.xany.type));
+	if (type !== ostypes.CONST.KeyPress && type !== ostypes.CONST.KeyRelease) {
+		// console.log('type is not KeyPress or KeyRelease:', type);
+		return ostypes.CONST.GDK_FILTER_CONTINUE; // allow the event
+	} else {
+		// gets to here only if it is KeyPress or KeyRelease
+		var xkey = ctypes.cast(xeventPtr.contents.xany.address(), ostypes.TYPE.XKeyEvent.ptr).contents;
+		console.log('xkey:', xkey, xkey.toString());
+
+		var keystate = type === ostypes.CONST.KeyPress ? 1 : 0; // 1 for down, 0 for up
+
+		var buf = ostypes.TYPE.char.array(30)();
+		var keysym = ostypes.TYPE.KeySym();
+		var rez_getkeysym = ostypes.API('XLookupString')(xkey.address(), buf, buf.constructor.size, keysym.address(), null);
+		console.log('rez_getkeysym:', rez_getkeysym);
+
+		keysym = parseInt(cutils.jscGetDeepest(keysym)); // this is the `XK_*` const value
+		console.log('keysym:', keysym);
+
+		var keyname; // console.log('remove on prod') just debug
+		var consts = ostypes.CONST; // console.log('remove on prod') just debug
+		for (var c in consts) { // console.log('remove on prod') just debug
+			if (c.startsWith('XK_')) { // console.log('remove on prod') just debug
+				var val = consts[c]; // console.log('remove on prod') just debug
+				if (val === keysym) { // console.log('remove on prod') just debug
+					keyname = c.substr(2).replace(/_/g, ' '); // console.log('remove on prod') just debug
+					break; // console.log('remove on prod') just debug
+				} // console.log('remove on prod') just debug
+			} // console.log('remove on prod') just debug
+		} // console.log('remove on prod') just debug
+		console.log('keyname:', keyname); // console.log('remove on prod') just debug
+
+		var ismod = false;
+		var modname; // set to key it should be in `mods` object
+		switch (keysym) {
+			case ostypes.CONST.XK_Shift_L:
+				modname = 'lshift';
+				ismod = true;
+				break;
+			case ostypes.CONST.XK_Shift_R:
+				modname = 'rshift';
+				ismod = true;
+				break;
+			case ostypes.CONST.XK_Control_L:
+				modname = 'lcontrol';
+				ismod = true;
+				break;
+			case ostypes.CONST.XK_Control_R:
+				modname = 'rcontrol';
+				ismod = true;
+				break;
+			case ostypes.CONST.XK_Super_L:
+				modname = 'lmeta';
+				ismod = true;
+				break;
+			case ostypes.CONST.XK_Super_R:
+				modname = 'rmeta';
+				ismod = true;
+				break;
+			case ostypes.CONST.XK_Alt_L:
+				modname = 'lalt';
+				ismod = true;
+				break;
+			case ostypes.CONST.XK_Alt_R:
+				modname = 'ralt';
+				ismod = true;
+				break;
+			// case ostypes.CONST.XK_Meta_L:
+			// case ostypes.CONST.XK_Meta_R:
+			// case ostypes.CONST.VK_CAPITAL:
+				// these keys are mods but not counted into hotkey combo
+				ismod = true;
+		}
+
+		if (modname) {
+			// so obviously is mod
+			if (keystate) {
+				// key is down
+				OSStuff.mods[modname] = true;
+			} else {
+				// key is up
+				delete OSStuff.mods[modname];
+			}
+			var mods = {};
+			for (var mod in OSStuff.mods) {
+				mods[mod.substr(1)] = true;
+			}
+			OSStuff.aReportProgress_recording({
+				recording: {
+					mods
+				}
+			});
+		} else if (!ismod && keystate) {
+			var keycode = parseInt(cutils.jscGetDeepest(xkey.keycode));
+			console.log('keycode:', keycode);
+
+			if (keysym === ostypes.CONST.XK_Escape) {
+				stopRecording();
+			} else {
+				var keyname;
+				var consts = ostypes.CONST;
+				for (var c in consts) {
+					if (c.startsWith('XK_')) {
+						var val = consts[c];
+						if (val === keysym) {
+							keyname = c.substr(2).replace(/_/g, ' ');
+							break;
+						}
+					}
+				}
+
+				if (keyname) {
+					console.log('keyname:', keyname);
+					var mods = {};
+					for (var mod in OSStuff.mods) {
+						mods[mod.substr(1)] = true;
+					}
+					OSStuff.aReportProgress_recording({
+						recording: {
+							name: keyname,
+							code: keysym,
+							mods
+						}
+					});
+					stopRecording();
+				}
+				else { console.error('ERROR: could not find keyname for vkCode:', vkCode) }
+			}
+		}
+
+		return ostypes.CONST.GDK_FILTER_REMOVE;
+	}
+}
+
 // start - common helper functions
 var ostypes;
 var OSStuff = {};
@@ -526,4 +691,14 @@ function formatStringFromNameCore(aLocalizableStr, aLoalizedKeyInCoreAddonL10n, 
     }
 
     return cLocalizedStr;
+}
+
+function getNativeHandlePtrStr(aDOMWindow) {
+	var aDOMBaseWindow = aDOMWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+								   .getInterface(Ci.nsIWebNavigation)
+								   .QueryInterface(Ci.nsIDocShellTreeItem)
+								   .treeOwner
+								   .QueryInterface(Ci.nsIInterfaceRequestor)
+								   .getInterface(Ci.nsIBaseWindow);
+	return aDOMBaseWindow.nativeHandle;
 }

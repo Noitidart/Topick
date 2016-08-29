@@ -111,6 +111,201 @@ function onBeforeTerminate() {
 
 }
 
+function xcbGetActiveWindow() {
+	var req_get = ostypes.API('xcb_get_property')(ostypes.HELPER.cachedXCBConn(), 0, ostypes.HELPER.cachedXCBRootWindow(), ostypes.HELPER.cachedXCBAtom('_NET_ACTIVE_WINDOW'), ostypes.CONST.XCB_ATOM_WINDOW, 0, 32);
+	var rez_get = ostypes.API('xcb_get_property_reply')(ostypes.HELPER.cachedXCBConn(), req_get, null);
+	console.log('rez_get.contents:', rez_get.contents);
+
+	if (!rez_get.isNull()) {
+		var val_get = ostypes.API('xcb_get_property_value')(rez_get);
+		console.log('val_get:', val_get);
+		var win = ctypes.cast(val_get, ostypes.TYPE.xcb_window_t.ptr).contents;
+		ostypes.API('free')(rez_get);
+		return win;
+	} else {
+		console.log('is null');
+		return null;
+	}
+}
+
+function xcbGetToppableWindow(aWin) {
+	// aWin is xcb_window_t
+	var rez_query = xcbQueryParentsUntil(aWin, win => {
+		// test if it has _NET_WM_STATE atom
+		var req_get = ostypes.API('xcb_get_property')(ostypes.HELPER.cachedXCBConn(), 0, win, ostypes.HELPER.cachedXCBAtom('_NET_WM_STATE'), ostypes.CONST.XCB_GET_PROPERTY_TYPE_ANY, 0, 32);
+		var rez_get = ostypes.API('xcb_get_property_reply')(ostypes.HELPER.cachedXCBConn(), req_get, null);
+		if (!rez_get.isNull()) {
+			var got_type = cutils.jscGetDeepest(rez_get.contents.type);
+			console.log('rez_get:', rez_get);
+			ostypes.API('free')(rez_get);
+			if (!cutils.jscEqual(got_type, ostypes.CONST.XCB_NONE)) { // if `rez_get->type` is not XCB_NONE then it has the atom of `_NET_WM_STATE`
+				console.log('win:', win, 'has _NET_WM_STATE atom');
+				return true;
+			} else {
+				console.log('win:', win, 'does not have _NET_WM_STATE atom');
+				return undefined;
+			}
+		}
+	});
+
+	if (rez_query) {
+		return rez_query.win;
+	} else {
+		// no toppable window found
+		return null;
+	}
+	console.log('rez_query:', rez_query);
+}
+
+function xcbSetAlwaysOnTop(aXcbWindowT) {
+	var win = aXcbWindowT;
+
+	// var change_list = ostypes.TYPE.xcb_atom_t.array()([ostypes.HELPER.cachedXCBAtom('_NET_WM_STATE_ABOVE')]);
+	// var req_change = ostypes.API('xcb_change_property')(ostypes.HELPER.cachedXCBConn(), ostypes.CONST.XCB_PROP_MODE_REPLACE, win, ostypes.HELPER.cachedXCBAtom('_NET_WM_STATE'), ostypes.CONST.XCB_ATOM_ATOM, 32, change_list.length, change_list);
+	//
+	// ostypes.API('xcb_map_window')(ostypes.HELPER.cachedXCBConn(), win);
+	//
+	// ostypes.API('xcb_flush')(ostypes.HELPER.cachedXCBConn());
+
+	//// was 1-to-1 porting - http://libxcb.sourcearchive.com/documentation/1.1/group__XCB____API_g8f8291858b47fd9c88f07d96720fbd7c.html#g8f8291858b47fd9c88f07d96720fbd7c
+	// var xcb_req = ostypes.TYPE.xcb_protocol_request_(4, 0, ostypes.CONST.XCB_SEND_EVENT);
+	// var xcb_parts = ostypes.TYPE.iovec.array(6)();
+	// var xcb_ret = ostypes.TYPE.xcb_void_cookie_t;
+	// var xcb_out = ostypes.TYPE.xcb_send_event_request_t;
+	//
+	// xcb_out.propagate = propagate;
+    // xcb_out.destination = destination;
+    // xcb_out.event_mask = event_mask;
+	//
+	// xcb_parts[2].iov_base = ctypes.cast(xcb_out.address(), this.char.ptr);
+	// xcb_parts[2].iov_len = xcb_out.constructor.size;
+	// xcb_parts[3].iov_base = 0;
+	// xcb_parts[3].iov_len = (-1 * xcb_parts[2].iov_len) & 3;
+	// xcb_parts[4].iov_base = ctypes.cast(event.address(), this.char.ptr);
+	// xcb_parts[4].iov_len = 32 * this.char.size;
+	// xcb_parts[5].iov_base = 0;
+	// xcb_parts[5].iov_len = (-1 * xcb_parts[4].iov_len) & 3;
+	// xcb_ret.sequence = ostypes.API('xcb_send_request')(ostypes.HELPER.cachedXCBConn(), 0, xcb_parts + 2, xcb_req.address());
+
+	var ev = ostypes.TYPE.xcb_client_message_event_t();
+	ev.response_type = ostypes.CONST.XCB_CLIENT_MESSAGE;
+	ev.window = aXcbWindowT;
+	ev.format = 32;
+	ev.data.data32[1] = ostypes.CONST.XCB_CURRENT_TIME;
+	ev.type = ostypes.HELPER.cachedXCBAtom('_NET_WM_STATE');
+	ev.data.data32[0] = ostypes.CONST._NET_WM_STATE_ADD;
+	ev.data.data32[1] = ostypes.HELPER.cachedXCBAtom('_NET_WM_STATE_ABOVE');
+
+	var rez_send = ostypes.API('xcb_send_event')(ostypes.HELPER.cachedXCBConn(), 0, ostypes.HELPER.cachedXCBRootWindow(), ostypes.CONST.XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | ostypes.CONST.XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, ctypes.cast(ev.address(), ctypes.char.ptr));
+	console.log('rez_send:', rez_send);
+
+	var rez_flush = ostypes.API('xcb_flush')(ostypes.HELPER.cachedXCBConn());
+	console.log('rez_flush:', rez_flush);
+}
+function xcbUnsetAlwaysOnTop(aXcbWindowT) {
+	var ev = ostypes.TYPE.xcb_client_message_event_t();
+	ev.response_type = ostypes.CONST.XCB_CLIENT_MESSAGE;
+	ev.window = aXcbWindowT;
+	ev.format = 32;
+	ev.data.data32[1] = ostypes.CONST.XCB_CURRENT_TIME;
+	ev.type = ostypes.HELPER.cachedXCBAtom('_NET_WM_STATE');
+	ev.data.data32[0] = ostypes.CONST._NET_WM_STATE_REMOVE;
+	ev.data.data32[1] = ostypes.HELPER.cachedXCBAtom('_NET_WM_STATE_ABOVE');
+
+	var rez_send = ostypes.API('xcb_send_event')(ostypes.HELPER.cachedXCBConn(), 0, ostypes.HELPER.cachedXCBRootWindow(), ostypes.CONST.XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | ostypes.CONST.XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, ctypes.cast(ev.address(), ctypes.char.ptr));
+	console.log('rez_send:', rez_send);
+
+	var rez_flush = ostypes.API('xcb_flush')(ostypes.HELPER.cachedXCBConn());
+	console.log('rez_flush:', rez_flush);
+}
+
+function xcbGetFocusedWindow() {
+	// returns the xcb_window_t (same as XID) that is currently has focus
+	var req_focus = ostypes.API('xcb_get_input_focus')(ostypes.HELPER.cachedXCBConn());
+
+	var rez_focus = ostypes.API('xcb_get_input_focus_reply')(ostypes.HELPER.cachedXCBConn(), req_focus, null);
+	var win = rez_focus.contents.focus;
+	ostypes.API('free')(rez_focus);
+	// console.log('rez_focus:', rez_focus);
+	return win;
+}
+
+function xcbQueryParentsUntil(aXcbWindowT, aCallback, aOptions={}) {
+	// query windows
+	// quits if it gets to root, returns null
+	// on success returns {win,result:callback_result}
+
+	// example:
+		// xcbQueryParentsUntil(xcbGetFocusedWindow(), xcbGetWindowTitle, {break:el=>el!==''});
+
+	var default_options = {
+		inclusive: true, // meaning test on aXcbWindowT
+		break: el=>el // if result of aCallback is truthy
+	};
+	var options = Object.assign(default_options, aOptions);
+	var result;
+
+
+	var win = aXcbWindowT;
+	if (options.inclusive) {
+		result = aCallback(win);
+		if (options.break(result)) {
+			return {
+				win,
+				result
+			}
+		}
+	}
+	var root = -1;
+	var parent = aXcbWindowT;
+	while (!cutils.jscEqual(win, root)) {
+		var req_query = ostypes.API('xcb_query_tree')(ostypes.HELPER.cachedXCBConn(), win);
+		var rez_query = ostypes.API('xcb_query_tree_reply')(ostypes.HELPER.cachedXCBConn(), req_query, null);
+		console.log('rez_query.contents:', rez_query.contents);
+		if (root === -1) {
+			root = rez_query.contents.root;
+		}
+		win = rez_query.contents.parent;
+		ostypes.API('free')(rez_query);
+		result = aCallback(win);
+		if (options.break(result)) {
+			return {
+				win,
+				result
+			}
+		}
+	}
+
+	return null;
+}
+
+function xcbGetWindowTitle(aXcbWindowT) {
+	var win = aXcbWindowT;
+	// console.log('win:', win);
+
+	var req_title = ostypes.API('xcb_get_property')(ostypes.HELPER.cachedXCBConn(), 0, win, ostypes.CONST.XCB_ATOM_WM_NAME, ostypes.CONST.XCB_ATOM_STRING, 0, 100); // `100` means it will get 100*4 so 400 bytes, so that 400 char, so `rez_title.bytes_after` should be `0` but i can loop till it comes out to be 0
+	var rez_title = ostypes.API('xcb_get_property_reply')(ostypes.HELPER.cachedXCBConn(), req_title, null);
+	// console.log('rez_title:', rez_title);
+
+	var title_len = ostypes.API('xcb_get_property_value_length')(rez_title); // length is not null terminated so "Console - chrome://nativeshot/content/resources/scripts/MainWorker.js?0.01966718940939427" will be length of `88`, this matches `rez_title.length` but the docs recommend to use this call to get the value, i dont know why
+	console.log('title_len:', title_len, 'rez_title.contents.length:', rez_title.contents.length); // i think `rez_title.contents.length` is the actual length DIVIDED by 4, and rez_title_len is not dividied by 4
+
+	var title_buf = ostypes.API('xcb_get_property_value')(rez_title); // "title_len: 89 rez_title.contents.length: 23" for test case of "Console - chrome://nativeshot/content/resources/scripts/MainWorker.js?0.01966718940939427"
+	// console.log('title_buf:', title_buf);
+
+	var title = ctypes.cast(title_buf, ctypes.char.array(title_len).ptr).contents.readString();
+	console.log('title:', title);
+
+	ostypes.API('free')(rez_title);
+
+	return title;
+}
+
+function xcbFlush() {
+	var rez_flush = ostypes.API('xcb_flush')(ostypes.HELPER.cachedXCBConn());
+	console.log('rez_flush', rez_flush);
+}
+
 function hotkeysShouldUnregister() {
 	if (gHKI.hotkeys && gHKI.hotkeys.find(el => el.__REGISTERED)) {
 		// it means something is registered, so lets unregister it
