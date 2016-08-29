@@ -486,7 +486,7 @@ function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 
 	if (!ismod && keystate) {
 		// key is down and is not a modifier key
-		if (keyCode === ostypes.CONST.KEY_Escape) {
+		if (keyCode === ostypes.CONST.kVK_Escape) {
 			stopRecording();
 		} else {
 
