@@ -199,6 +199,23 @@ function startRecording(aArg, aReportProgress) {
 				}
 
 			break;
+		case 'darwin':
+
+				var NSEvent = ostypes.HELPER.class('NSEvent');
+
+				macRecordingCallback_c = ostypes.TYPE.IMP_for_EventMonitorCallback.ptr(macRecordingCallback);
+				OSStuff.block_c = ostypes.HELPER.createBlock(macRecordingCallback_c);
+
+				var rez_add = ostypes.API('objc_msgSend')(NSEvent, ostypes.HELPER.sel('addLocalMonitorForEventsMatchingMask:handler:'), ostypes.TYPE.NSEventMask(ostypes.CONST.NSSystemDefinedMask | ostypes.CONST.NSKeyUpMask | ostypes.CONST.NSKeyDownMask), OSStuff.block_c.address());
+				console.log('rez_add:', rez_add, rez_add.toString());
+
+				OSStuff.add = rez_add;
+
+				OSStuff.mods = {};
+				OSStuff.aReportProgress_recording = aReportProgress;
+				OSStuff.deferredmain_recording = deferredmain;
+
+			break;
 	}
 
 	return deferredmain.promise;
@@ -212,21 +229,35 @@ function stopRecording() {
 
 	gIsRecording = false;
 
+	var deferredmain_recording = OSStuff.deferredmain_recording;
+
 	switch (core.os.mname) {
 		case 'winnt':
 
 				var rez_unhook = ostypes.API('UnhookWindowsHookEx')(OSStuff.hook);
 				console.log('rez_unhook:', rez_unhook, rez_unhook.toString());
 
-				OSStuff.deferredmain_recording.resolve();
-
 				delete OSStuff.hook;
-				delete OSStuff.aReportProgress_recording;
-				delete OSStuff.deferredmain_recording;
-				delete OSStuff.mods;
+
+			break;
+		case 'darwin':
+
+				var NSEvent = ostypes.HELPER.class('NSEvent');
+				var rez_remove = ostypes.API('objc_msgSend')(NSEvent, ostypes.HELPER.sel('removeMonitor:'), OSStuff.add);
+				console.log('rez_remove:', rez_remove, rez_remove.toString());
+
+				delete OSStuff.add;
+				delete OSStuff.block_c;
+				macRecordingCallback_c = null;
 
 			break;
 	}
+
+	deferredmain_recording.resolve();
+
+	delete OSStuff.aReportProgress_recording;
+	delete OSStuff.deferredmain_recording;
+	delete OSStuff.mods;
 }
 
 var winRecordingCallback_c;
@@ -356,6 +387,102 @@ function winRecordingCallback(nCode, wParam, lParam) {
 		console.error('ERROR: nCode is not 0 NOR less than 0!!! what on earth? docs never said anything about this. i dont think this should ever happen!', 'nCode:', nCode);
 		return ostypes.API('CallNextHookEx')(null, nCode, wParam, lParam);
 	}
+}
+
+var macRecordingCallback_c;
+function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
+
+	var type = ctypes.cast(ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('type')), ostypes.TYPE.NSEventType);
+	// console.log('type:', type, type.toString());
+	type = parseInt(cutils.jscGetDeepest(type));
+	console.log('type:', type);
+
+	var startsWithTest; // will be set to a function
+
+	if (type == ostypes.CONST.NSSystemDefined) {
+		var subtype = ctypes.cast(ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('subtype')), ostypes.TYPE.NSUInteger);
+		if (!cutils.jscEqual(subtype, 8)) {
+			// not key related i think
+			console.warn('event not key related, subtype:', subtype, subtype.toString());
+			return objc_arg1__aNSEventPtr; // let it through
+		} else {
+			var data1 = parseInt(cutils.jscGetDeepest(ctypes.cast(ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('data1')), ostypes.TYPE.NSUInteger)));
+			console.info('data1:', data1);
+			var keyCode = data1 >>> 16;
+			console.log('keyCode:', keyCode);
+			var keystate = ((data1 & 0xFF00) >> 8) == 0xA ? 1 : 0 // 1 for down, 0 for up
+			console.info('keystate:', keystate);
+			var keyRepeat = !!(data1 & 0x1);
+			console.log('keyRepeat:', keyRepeat);
+
+			if (keyCode === 0) {
+				// its a mouse event
+				console.warn('keyCode of system defined event is 0, so not a key event');
+				return objc_arg1__aNSEventPtr; // let it through
+			}
+
+			startsWithTest = a_const => (a_const.startsWith('NX_KEYTYPE_') || a_const.startsWith('NX_MODIFIERKEY_'));
+
+		}
+	} else if (type == ostypes.CONST.NSKeyUp || type == ostypes.CONST.NSKeyDown) {
+		var keystate = type == ostypes.CONST.NSKeyDown ? 1 : 0; // 1 for down, 0 for up
+
+		var keyCode = ctypes.cast(ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('keyCode')), ostypes.TYPE.UInt16);
+		console.info('keyCode:', keyCode);
+		keyCode = parseInt(cutils.jscGetDeepest(keyCode));
+
+		startsWithTest = a_const => a_const.startsWith('KEY_');
+
+	} else {
+		console.error('got unknown type!!!');
+		return objc_arg1__aNSEventPtr; // let it through
+	}
+
+	var keyname;
+	var consts = ostypes.CONST;
+	for (var c in consts) {
+		if (startsWithTest(c)) {
+			var val = consts[c];
+			if (val === keyCode) {
+				keyname = c.substr(c.lastIndexOf('_') + 1);
+				break;
+			}
+		}
+	}
+
+	var modifierFlags = ctypes.cast(ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('modifierFlags')), ostypes.TYPE.NSEventModifierFlags);
+	console.log('modifierFlags:', modifierFlags);
+	modifierFlags = parseInt(cutils.jscGetDeepest(modifierFlags));
+	if (modifierFlags & ostypes.CONST.NSCommandKeyMask)		{ OSStuff.mods.meta = true } else { delete OSStuff.mods.meta }
+	if (modifierFlags & ostypes.CONST.NSShiftKeyMask)		{ OSStuff.mods.shift = true } else { delete OSStuff.mods.shift }
+	if (modifierFlags & ostypes.CONST.NSAlternateKeyMask)	{ OSStuff.mods.alt = true } else { delete OSStuff.mods.alt }
+	if (modifierFlags & ostypes.CONST.NSControlKeyMask)		{ OSStuff.mods.control = true } else { delete OSStuff.mods.control }
+
+	var ismod = false;
+	var modname;
+
+	if (!ismod && keystate) {
+		// key is down and is not a modifier key
+		if (keyCode === ostypes.CONST.KEY_Escape) {
+			stopRecording();
+		} else {
+
+			if (keyname) {
+				OSStuff.aReportProgress_recording({
+					recording: {
+						name: keyname,
+						code: keyCode,
+						mods: OSStuff.mods
+					}
+				});
+				stopRecording();
+			}
+			else { console.error('ERROR: could not find keyname for keyCode:', keyCode) }
+		}
+	}
+
+	// return objc_arg1__aNSEventPtr; // return null to block
+	return null;
 }
 
 // start - common helper functions
