@@ -527,6 +527,7 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 
 		var keystate = type === ostypes.CONST.KeyPress ? 1 : 0; // 1 for down, 0 for up
 
+		// i learned i have to take keycode to keysym from here - http://www.sbin.org/doc/Xlib/chapt_09.html
 		var buf = ostypes.TYPE.char.array(30)();
 		var keysym = ostypes.TYPE.KeySym();
 		var rez_getkeysym = ostypes.API('XLookupString')(xkey.address(), buf, buf.constructor.size, keysym.address(), null);
@@ -535,18 +536,18 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 		keysym = parseInt(cutils.jscGetDeepest(keysym)); // this is the `XK_*` const value
 		console.log('keysym:', keysym);
 
-		var keyname; // console.log('remove on prod') just debug
-		var consts = ostypes.CONST; // console.log('remove on prod') just debug
-		for (var c in consts) { // console.log('remove on prod') just debug
-			if (c.startsWith('XK_')) { // console.log('remove on prod') just debug
-				var val = consts[c]; // console.log('remove on prod') just debug
-				if (val === keysym) { // console.log('remove on prod') just debug
-					keyname = c.substr(2).replace(/_/g, ' '); // console.log('remove on prod') just debug
-					break; // console.log('remove on prod') just debug
-				} // console.log('remove on prod') just debug
-			} // console.log('remove on prod') just debug
-		} // console.log('remove on prod') just debug
-		console.log('keyname:', keyname); // console.log('remove on prod') just debug
+		// var keyname; // console.log('remove on prod') just debug
+		// var consts = ostypes.CONST; // console.log('remove on prod') just debug
+		// for (var c in consts) { // console.log('remove on prod') just debug
+		// 	if (c.startsWith('XK_')) { // console.log('remove on prod') just debug
+		// 		var val = consts[c]; // console.log('remove on prod') just debug
+		// 		if (val === keysym) { // console.log('remove on prod') just debug
+		// 			keyname = c.substr(2).replace(/_/g, ' '); // console.log('remove on prod') just debug
+		// 			break; // console.log('remove on prod') just debug
+		// 		} // console.log('remove on prod') just debug
+		// 	} // console.log('remove on prod') just debug
+		// } // console.log('remove on prod') just debug
+		// console.log('keyname:', keyname); // console.log('remove on prod') just debug
 
 		var ismod = false;
 		var modname; // set to key it should be in `mods` object

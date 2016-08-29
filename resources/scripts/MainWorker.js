@@ -318,6 +318,7 @@ function hotkeysShouldUnregister() {
 var gHKI = {};
 
 function fetchCore(aArg) {
+	console.log('in fetchCore');
 	var { hydrant_ex_instructions, nocore } = aArg || {};
 
 	var deferredmain = new Deferred();
@@ -363,9 +364,12 @@ var gFilestoreDefaultGetters = [ // after default is set, it runs all these func
 var gFilestoreDefault = {
 	prefs: {
 		hotkey: {  // TODO: needs to be os dependent
-			code: 0,
-			name: '', // the physical thing that is shown on keyboard, my best guess at it. like "a" would be "a", "Escape" would be "Esc"
-			mods: {}
+			get code () { return (ostypes.CONST.XK_a || ostypes.CONST.VK_A || ostypes.CONST.KEY_A) },
+			name: 'A', // the physical thing that is shown on keyboard, my best guess at it. like "a" would be "a", "Escape" would be "Esc"
+			mods: {
+				meta: true,
+				shift: true
+			}
 		}
 	}
 };
@@ -534,7 +538,7 @@ function xhr(aUrlOrFileUri, aOptions={}) {
 	// console.error('done xhr!!!');
 	return cRequest;
 }
-// rev4 - https://gist.github.com/Noitidart/6d8a20739b9a4a97bc47
+// rev2 - https://gist.github.com/Noitidart/ea840a3a0fab9af6687edbad3ae63f48
 var _cache_formatStringFromName_packages = {}; // holds imported packages
 function formatStringFromName(aKey, aLocalizedPackageName, aReplacements) {
 	// depends on ```core.addon.path.locale``` it must be set to the path to your locale folder
@@ -562,7 +566,7 @@ function formatStringFromName(aKey, aLocalizedPackageName, aReplacements) {
 		var propPatt = /(.*?)=(.*?)$/gm;
 		var propMatch;
 		while (propMatch = propPatt.exec(packageStr)) {
-			packageJson[propMatch[1]] = propMatch[2];
+			packageJson[propMatch[1].trim()] = propMatch[2];
 		}
 
 		_cache_formatStringFromName_packages[packageName] = packageJson;

@@ -24,9 +24,9 @@ uninitAppPage = function() {
 
 focusAppPage = function() {
 	console.error('focused!!!!!!');
-	// callInMainworker('fetchCore', { nocore:true, hydrant_ex_instructions }, function(aArg) {
-	// 	store.dispatch(setMainKeys(aArg.hydrant_ex));
-	// });
+	callInMainworker('fetchCore', { nocore:true, hydrant_ex_instructions }, function(aArg) {
+		store.dispatch(setMainKeys(aArg.hydrant_ex));
+	});
 }
 
 shouldUpdateHydrantEx = function() {
