@@ -454,7 +454,7 @@ function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 		// var characters = ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('characters'));
 		// var characters_js = ostypes.HELPER.readNSString(characters);
 		// console.log('characters:', characters, 'characters_js:', characters_js);
-		startsWithTest = a_const => a_const.startsWith('KEY_');
+		startsWithTest = a_const => a_const.startsWith('kVK_');
 
 	} else {
 		console.error('got unknown type!!!');
@@ -467,7 +467,7 @@ function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 		if (startsWithTest(c)) {
 			var val = consts[c];
 			if (val === keyCode) {
-				keyname = c.substr(c.lastIndexOf('_') + 1);
+				keyname = c.substr(c.includes('kVK_ANSI') ? 9 : 4);
 				break;
 			}
 		}
