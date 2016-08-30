@@ -615,6 +615,7 @@ function startRecording() {
 		console.error('already recording!');
 		return undefined;
 	}
+	callInMainworker('hotkeysShouldUnregister');
 	gIsRecording = true;
 	// window.addEventListener('keydown', onRecordingKeyDown, false);
 	setTimeout(()=>document.activeElement.blur(), 0); // so it doesnt have the `:focus` styling on the button, but setTimeout because i want it to apply the `.active` styling as i set `value` of the `buttons` entry to `hotkey` so it lights up "Listening..."
@@ -645,6 +646,7 @@ function mutateRecording(recording) {
 
 function cancelRecording() {
 	gIsRecording = false;
+	callInMainworker('reinitHotkeys', true);
 	// window.removeEventListener('keydown', onRecordingKeyDown, false);
 	return {
 		type: CANCEL_RECORDING

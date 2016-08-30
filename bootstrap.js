@@ -56,13 +56,6 @@ function onBeforeTerminateMainworker() {
 	return new Promise(resolve =>
 		callInMainworker( 'onBeforeTerminate', null, ()=>resolve() )
 	);
-	// function() {
-	// 	var deferredmain = new Deferred();
-	//
-	// 	callInMainworker('hotkeysShouldUnregister', undefined, done=>deferredmain.resolve());
-	//
-	// 	return deferredmain.promise;
-	// }
 }
 
 function install() {}
@@ -79,7 +72,7 @@ function startup(aData, aReason) {
     Services.scriptloader.loadSubScript(core.addon.path.scripts + 'comm/Comm.js');
 	({ callInMainworker, callInContentinframescript, callInFramescript } = CommHelper.bootstrap);
 
-	// Services.scriptloader.loadSubScript(core.addon.path.scripts + 'jscSystemHotkey/shtkMainthreadSubscript.js');
+	Services.scriptloader.loadSubScript(core.addon.path.scripts + 'jscSystemHotkey/shtkMainthreadSubscript.js');
 
 	gWkComm = new Comm.server.worker(core.addon.path.scripts + 'MainWorker.js?' + core.addon.cache_key, ()=>core, function(aArg, aComm) {
 
@@ -164,6 +157,12 @@ function getAddonInfo(aAddonId=core.addon.id) {
 
 	return deferredmain_getaddoninfo.promise;
 }
+
+function hotkeyRegistrationFailed(aArg) {
+	var { hotkey, reason } = aArg;
+	Services.prompt.alert(Services.wm.getMostRecentWindow('navigator:browser'), formatStringFromNameCore('hotkey_error_title', 'main'), reason + ( !hotkey ? '' : '\n\n\nOffending Hotkey Combination: ' + (hotkey.desc || formatStringFromNameCore('all', 'main')) ));
+}
+
 
 var gIsRecording = false;
 function startRecording(aArg, aReportProgress) {
@@ -373,11 +372,13 @@ function winRecordingCallback(nCode, wParam, lParam) {
 				stopRecording();
 			} else {
 				var keyname;
+				var keyconst;
 				var consts = ostypes.CONST;
 				for (var c in consts) {
 					if (c.startsWith('VK_') || c.startsWith('vk_')) {
 						var val = consts[c];
 						if (val === vkCode) {
+							keyconst = c;
 							keyname = c.substr(3);
 							break;
 						}
@@ -393,7 +394,8 @@ function winRecordingCallback(nCode, wParam, lParam) {
 						recording: {
 							name: keyname,
 							code: vkCode,
-							mods
+							mods,
+							keyconst
 						}
 					});
 					stopRecording();
@@ -462,12 +464,18 @@ function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 	}
 
 	var keyname;
+	var keyconst;
 	var consts = ostypes.CONST;
 	for (var c in consts) {
 		if (startsWithTest(c)) {
 			var val = consts[c];
 			if (val === keyCode) {
-				keyname = c.substr(c.includes('kVK_ANSI') ? 9 : 4);
+				keyconst = c;
+				if (c.startsWith('NX_KEYTYPE_')) {
+					keyname = c.substr(11);
+				} else {
+					keyname = c.substr(c.includes('kVK_ANSI') ? 9 : 4);
+				}
 				break;
 			}
 		}
@@ -495,7 +503,8 @@ function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 					recording: {
 						name: keyname,
 						code: keyCode,
-						mods: OSStuff.mods
+						mods: OSStuff.mods,
+						const: keyconst
 					}
 				});
 				stopRecording();
@@ -611,6 +620,7 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 			});
 		} else if (!ismod && keystate) {
 			var keycode = parseInt(cutils.jscGetDeepest(xkey.keycode));
+			var keyconst;
 			console.log('keycode:', keycode);
 
 			if (keysym === ostypes.CONST.XK_Escape) {
@@ -622,6 +632,7 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 					if (c.startsWith('XK_')) {
 						var val = consts[c];
 						if (val === keysym) {
+							keyconst = c;
 							keyname = c.substr(2).replace(/_/g, ' ');
 							break;
 						}
@@ -638,7 +649,8 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 						recording: {
 							name: keyname,
 							code: keysym,
-							mods
+							mods,
+							const: keyconst
 						}
 					});
 					stopRecording();

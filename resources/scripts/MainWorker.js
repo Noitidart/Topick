@@ -16,7 +16,7 @@ function init(objCore) {
 
 	core = objCore;
 
-	// importScripts(core.addon.path.scripts + 'jscSystemHotkey/shtkMainworkerSubscript.js');
+	importScripts(core.addon.path.scripts + 'jscSystemHotkey/shtkMainworkerSubscript.js');
 
 	addOsInfoToCore();
 
@@ -47,30 +47,7 @@ function init(objCore) {
 			throw new Error('Operating system, "' + OS.Constants.Sys.Name + '" is not supported');
 	}
 
-	// OS Specific Init
-	switch (core.os.name) {
-		case 'winnt':
-		case 'winmo':
-		case 'wince':
-
-				//
-
-			break;
-		case 'gtk':
-
-				//
-
-			break;
-		case 'darwin':
-
-				//
-
-			break;
-		default:
-			// do nothing special
-	}
-
-	// setTimeout(reflectSystemHotkeyPref, 0); // this does `readFilestore` because it does `fetchFilestoreEntry`
+	reinitHotkeys(true); // this does readFilestore
 
 	return {
 		core
@@ -81,10 +58,11 @@ function init(objCore) {
 
 function onBeforeTerminate() {
 	console.log('doing mainworker term proc');
+	var promises_main = [];
 
 	writeFilestore();
 
-	var promise_unreg = hotkeysShouldUnregister(); // this isnt really in use as im doing it on before term of worker
+	promises_main.push(hotkeysShouldUnregister()); // this isnt really in use as im doing it on before term of worker
 
 	Comm.server.unregAll('worker');
 
@@ -105,27 +83,9 @@ function onBeforeTerminate() {
 
 
 	console.log('ok onBeforeTerminate return point');
-	if (promise_unreg) {
-		return promise_unreg;
-	}
 
-}
+	return Promise.all(promises_main);
 
-function xcbGetActiveWindow() {
-	var req_get = ostypes.API('xcb_get_property')(ostypes.HELPER.cachedXCBConn(), 0, ostypes.HELPER.cachedXCBRootWindow(), ostypes.HELPER.cachedXCBAtom('_NET_ACTIVE_WINDOW'), ostypes.CONST.XCB_ATOM_WINDOW, 0, 32);
-	var rez_get = ostypes.API('xcb_get_property_reply')(ostypes.HELPER.cachedXCBConn(), req_get, null);
-	console.log('rez_get.contents:', rez_get.contents);
-
-	if (!rez_get.isNull()) {
-		var val_get = ostypes.API('xcb_get_property_value')(rez_get);
-		console.log('val_get:', val_get);
-		var win = ctypes.cast(val_get, ostypes.TYPE.xcb_window_t.ptr).contents;
-		ostypes.API('free')(rez_get);
-		return win;
-	} else {
-		console.log('is null');
-		return null;
-	}
 }
 
 function xcbGetToppableWindow(aWin) {
@@ -306,6 +266,48 @@ function xcbFlush() {
 	console.log('rez_flush', rez_flush);
 }
 
+function getActiveWindow() {
+	// returns null if no window is active
+
+	var rez = null;
+
+	switch (core.os.mname) {
+		case 'winnt':
+				
+			break;
+		case 'gtk':
+
+				// can do two methods:
+				// method 1:
+				var focused = xcbGetFocusedWindow();
+				if (focused) {
+					var active = xcbGetToppableWindow(focused);
+					if (active) {
+						rez = active;
+					}
+				}
+
+			break;
+	}
+
+	return rez;
+}
+
+function toggleTop() {
+	console.log('in toggleTop');
+}
+
+function buildHotkeyStr(aHotkeyObj) {
+	var pieces = [];
+	if (aHotkeyObj.mods) {
+		for (var modname in aHotkeyObj.mods) {
+			pieces.push(modname);
+		}
+	}
+	pieces.push(aHotkeyObj.name || '???');
+	return pieces.join(' + ');
+}
+
 function hotkeysShouldUnregister() {
 	if (gHKI.hotkeys && gHKI.hotkeys.find(el => el.__REGISTERED)) {
 		// it means something is registered, so lets unregister it
@@ -314,8 +316,103 @@ function hotkeysShouldUnregister() {
 	else { console.log('no need to hotkeysUnregister'); }
 }
 
-// var gHKI;
-var gHKI = {};
+var gHKI;
+function reinitHotkeys(aRegister) {
+	// aRegister is bool, if true it will register the hotkeys after done init
+	// as need access to `core` and its properties
+
+	// hotkeys MUST NOT be registered when this runs
+	if (gHKI && gHKI.hotkeys && gHKI.hotkeys.find(el => el.__REGISTERED)) {
+		console.error('deverror! cannot reinitHotkeys while hotkeys are active, first unregister it!');
+		Promise.all([hotkeysUnregister()]).then(()=>{reinitHotkeys(true)});
+		return;
+	}
+
+	var hotkey = fetchFilestoreEntry({mainkey:'prefs', key:'hotkey'});
+	console.log('reinit hotkey with hotkey:', hotkey);
+	var hotkeystr = buildHotkeyStr(hotkey);
+
+	if (!gHKI) { // as i do reinit
+		gHKI = {
+			jscsystemhotkey_module_path: core.addon.path.scripts + 'jscSystemHotkey/',
+		    loop_interval_ms: 200,
+		    min_time_between_repeat: 400,
+		    hotkeys: undefined,
+		    callbacks: {
+				toggleTop
+		    }
+		};
+	}
+
+	switch (core.os.mname) {
+		case 'winnt':
+				console.log('in init hotkeys');
+				gHKI.hotkeys = [
+					{
+						desc: hotkeystr, // it describes the `code` combo in english for use on hotkeysRegister() failing
+						code: hotkey.code,
+						mods: hotkey.mods,
+						callback: 'toggleTop',
+					}
+				];
+				console.log('ok set');
+			break;
+		case 'gtk':
+				gHKI.hotkeys = [
+					{
+						desc: hotkeystr + ' (Capslock:Off, Numlock:Off)',
+						code: hotkey.code,
+						mods: hotkey.mods,
+						callback: 'toggleTop'
+					},
+					{
+						desc: hotkeystr + ' (Capslock:On, Numlock:Off)',
+						code: hotkey.code,
+						mods: Object.assign({}, hotkey.mods, {
+							capslock: true
+						}),
+						callback: 'toggleTop'
+					},
+					{
+						desc: hotkeystr + ' (Capslock:Off, Numlock:On)',
+						code: hotkey.code,
+						mods: Object.assign({}, hotkey.mods, {
+							numlock: true
+						}),
+						callback: 'toggleTop'
+					},
+					{
+						desc: hotkeystr + ' (Capslock:On, Numlock:On)',
+						code: hotkey.code,
+						mods: Object.assign({}, hotkey.mods, {
+							capslock: true,
+							numlock: true
+						}),
+						callback: 'toggleTop'
+					}
+				];
+			break;
+		case 'darwin':
+				gHKI.hotkeys = [
+					{
+						desc: hotkeystr, // \u2318 is the apple/meta key symbol
+						code: hotkey.code,
+						mods: hotkey.mods,
+						mac_method: hotkey.const.startsWith('NX_KEYTYPE_') ? 'corefoundation' : 'carbon',
+						callback: 'toggleTop'
+					}
+				];
+			break;
+		default:
+			console.error('your os is not supported for global platform hotkey');
+			// throw new Error('your os is not supported for global platform hotkey');
+	}
+	console.log('done init hotkeys');
+
+	if (aRegister) {
+		hotkeysRegister().then(failed => !failed ? null : callInBootstrap('hotkeyRegistrationFailed', failed));
+	}
+}
 
 function fetchCore(aArg) {
 	console.log('in fetchCore');
@@ -364,8 +461,9 @@ var gFilestoreDefaultGetters = [ // after default is set, it runs all these func
 var gFilestoreDefault = {
 	prefs: {
 		hotkey: {  // TODO: needs to be os dependent
-			get code () { return (ostypes.CONST.XK_a || ostypes.CONST.VK_A || ostypes.CONST.KEY_A) },
+			get code () { return (ostypes.CONST.XK_a || ostypes.CONST.vk_A || ostypes.CONST.KEY_A) },
 			name: 'A', // the physical thing that is shown on keyboard, my best guess at it. like "a" would be "a", "Escape" would be "Esc"
+			const: 'vk_A',
 			mods: {
 				meta: true,
 				shift: true
