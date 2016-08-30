@@ -368,6 +368,17 @@ function toggleTop() {
 				}
 
 			break;
+		case 'darwin':
+
+				var deferredmain = new Deferred();
+
+				callInBootstrap('macToggleTop', undefined, toggled => {
+					deferredmain.resolve(toggled);
+				});
+
+				return deferredmain.promise;
+
+			break;
 	}
 }
 
@@ -535,9 +546,18 @@ var gFilestoreDefaultGetters = [ // after default is set, it runs all these func
 var gFilestoreDefault = {
 	prefs: {
 		hotkey: {  // TODO: needs to be os dependent
-			get code () { return (ostypes.CONST.XK_a || ostypes.CONST.vk_A || ostypes.CONST.KEY_A) },
 			name: 'A', // the physical thing that is shown on keyboard, my best guess at it. like "a" would be "a", "Escape" would be "Esc"
-			const: 'vk_A',
+			get code () { return (ostypes.CONST.XK_a || ostypes.CONST.vk_A || ostypes.CONST.KEY_A) },
+			get const () {
+				switch (core.os.mname) {
+					case 'winnt':
+						return 'vk_A';
+					case 'gtk':
+						return 'XK_a';
+					case 'darwin':
+						return 'kVK_ANSI_A';
+				}
+			},
 			mods: {
 				meta: true,
 				shift: true

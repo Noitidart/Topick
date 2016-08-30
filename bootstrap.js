@@ -163,6 +163,51 @@ function hotkeyRegistrationFailed(aArg) {
 	Services.prompt.alert(Services.wm.getMostRecentWindow('navigator:browser'), formatStringFromNameCore('hotkey_error_title', 'main'), reason + ( !hotkey ? '' : '\n\n\nOffending Hotkey Combination: ' + (hotkey.desc || formatStringFromNameCore('all', 'main')) ));
 }
 
+function macToggleTop() {
+
+	initOstypes();
+
+	var nswinptrstr;
+
+	var windows = Services.wm.getEnumerator(null);
+	while (windows.hasMoreElements()) {
+		var window = windows.getNext();
+		if (isWindowFocused(window)) {
+			nswinptrstr = getNativeHandlePtrStr(window);
+			break;
+		}
+	}
+
+	if (!nswinptrstr) {
+		return false;
+	} else {
+		var win = ostypes.TYPE.NSWindow(ctypes.UInt64(nswinptrstr));
+
+		// get `istop`
+		var istop;
+		var rez_level = ostypes.API('objc_msgSend')(win, ostypes.HELPER.sel('level'));
+		console.log('rez_level:', rez_level);
+		var level = parseInt(cutils.jscGetDeepest(ctypes.cast(rez_level, ostypes.TYPE.NSUInteger)));
+		console.log('level:', level);
+
+		var NSFloatingWindowLevel = ostypes.API('CGWindowLevelForKey')(ostypes.CONST.kCGFloatingWindowLevelKey);
+		NSFloatingWindowLevel = parseInt(cutils.jscGetDeepest(NSFloatingWindowLevel));
+		console.log('NSFloatingWindowLevel:', NSFloatingWindowLevel);
+
+		var NSNormalWindowLevel = ostypes.API('CGWindowLevelForKey')(ostypes.CONST.kCGNormalWindowLevelKey);
+		NSNormalWindowLevel = parseInt(cutils.jscGetDeepest(NSNormalWindowLevel));
+		console.log('NSNormalWindowLevel:', NSNormalWindowLevel);
+
+		istop = cutils.jscEqual(level, NSFloatingWindowLevel);
+
+		console.log('istop:', istop);
+
+		var rez_set = ostypes.API('objc_msgSend')(win, ostypes.HELPER.sel('setLevel:'), ostypes.TYPE.NSInteger(istop ? NSNormalWindowLevel : NSFloatingWindowLevel));
+		console.log('rez_set:', rez_set, cutils.jscGetDeepest(rez_set));
+
+		return cutils.jscGetDeepest(rez_set);
+	}
+}
 
 var gIsRecording = false;
 function startRecording(aArg, aReportProgress) {
@@ -714,4 +759,19 @@ function getNativeHandlePtrStr(aDOMWindow) {
 								   .QueryInterface(Ci.nsIInterfaceRequestor)
 								   .getInterface(Ci.nsIBaseWindow);
 	return aDOMBaseWindow.nativeHandle;
+}
+
+// rev1 - https://gist.github.com/Noitidart/1071353ea84906900432
+function isWindowFocused(window) {
+    var childTargetWindow = {};
+    Services.focus.getFocusedElementForWindow(window, true, childTargetWindow);
+    childTargetWindow = childTargetWindow.value;
+
+    var focusedChildWindow = {};
+    if (Services.focus.activeWindow) {
+        Services.focus.getFocusedElementForWindow(Services.focus.activeWindow, true, focusedChildWindow);
+        focusedChildWindow = focusedChildWindow.value;
+    }
+
+    return (focusedChildWindow === childTargetWindow);
 }
