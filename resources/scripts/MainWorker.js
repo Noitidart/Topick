@@ -273,7 +273,10 @@ function getActiveWindow() {
 
 	switch (core.os.mname) {
 		case 'winnt':
-				
+				var hwnd = ostypes.API('GetForegroundWindow')();
+				if (!hwnd.isNull()) {
+					rez = hwnd;
+				}
 			break;
 		case 'gtk':
 
@@ -294,7 +297,38 @@ function getActiveWindow() {
 }
 
 function toggleTop() {
-	console.log('in toggleTop');
+	console.log('in toggleTop here');
+
+	switch (core.os.mname) {
+		case 'winnt':
+
+				var win = getActiveWindow();
+				if (!win) {
+					return false;
+				}
+
+				var rez_istop = ostypes.API('GetWindowLongPtr')(win, ostypes.CONST.GWL_EXSTYLE);
+				// if rez_istop == 0 then it failed, should test ctypes.winLastError
+				if (cutils.jscEqual(rez_istop, 0)) {
+					console.error('failed to get current top status of window, winLastError:', ctypes.winLastError);
+					return false;
+				}
+
+				var istop = !cutils.jscEqual(ctypes_math.UInt64.and(cutils.jscGetDeepest(rez_istop), ostypes.CONST.WS_EX_TOPMOST), 0);
+				console.log('istop:', istop);
+
+				// toggle it
+				var rez_set = ostypes.API('SetWindowPos')(win, istop ? ostypes.CONST.HWND_NOTOPMOST : ostypes.CONST.HWND_TOPMOST, 0, 0, 0, 0, ostypes.CONST.SWP_NOSIZE | ostypes.CONST.SWP_NOMOVE /* | ostypes.CONST.SWP_NOREDRAW*/ ); // window wasnt moved so no need for SWP_NOREDRAW, the NOMOVE and NOSIZE params make it ignore x, y, cx, and cy
+
+				if (rez_set) {
+					return true;
+				} else {
+					console.error('failed to set window status to', istop ? 'NOT topmost' : 'TOPMOST', 'winLastError:', ctypes.winLastError);
+					return false;
+				}
+
+			break;
+	}
 }
 
 function buildHotkeyStr(aHotkeyObj) {
