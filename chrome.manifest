@@ -1,2 +1,3 @@
 content topick ./ contentaccessible=true
 locale topick en-US locale/en-US/
+locale topick fr locale/fr/
