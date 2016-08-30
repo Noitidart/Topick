@@ -34,7 +34,7 @@
 		<!-- Front End MetaData -->
 		<!-- must provide default non-localized because It's used as a default on AMO. It's used as a default by the add-on manager, with the possibility of other locales overriding it. Failure to provide a non-localized name will lead to failed upload on AMO. -->
 		<em:name>Topick</em:name>
-		<em:description>System wide hotkey enabling toggling of active windows to be "always on top".</em:description>
+		<em:description>System wide hotkey enabling toggling of the active window to be "always on top".</em:description>
 		<em:creator>Noitidart</em:creator>
 		<em:contributor>Alexandre Moore for Icon</em:contributor>
 
@@ -43,7 +43,7 @@
 			<Description>
 				<em:locale>en-US</em:locale>
 				<em:name>Topick</em:name>
-				<em:description>System wide hotkey enabling toggling of active windows to be "always on top".</em:description>
+				<em:description>System wide hotkey enabling toggling of the active window to be "always on top".</em:description>
 				<em:creator>Noitidart</em:creator>
 				<em:contributor>Alexandre Moore for Icon</em:contributor>
 			</Description>
