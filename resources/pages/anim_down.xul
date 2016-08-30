@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://topick/content/resources/styles/anim.css" type="text/css"?>
+<window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        hidechrome="true"
+		windowtype="topick:animation"
+		style="background-color:transparent"
+		title="topick_animation"
+		onload="">
+		<box style="height:100vh;display:flex;justify-content:center;align-items:center;">
+			<image id="arrowdown" style="opacity: 0;"/>
+		</box>
+</window>

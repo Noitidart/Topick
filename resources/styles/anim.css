@@ -1,0 +1,39 @@
+@keyframes up {
+	0% {
+		opacity: 0;
+		transform: translateY(25vh);
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		transform: translateY(-25vh);
+	}
+}
+
+#arrowup {
+	animation-duration: 1s;
+    animation-name: up;
+	list-style-image: url("chrome://topick/content/resources/images/up128.png");
+}
+
+@keyframes down {
+	0% {
+		opacity: 0;
+		transform: translateY(-25vh);
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		transform: translateY(25vh);
+	}
+}
+
+#arrowdown {
+	animation-duration: 1s;
+    animation-name: down;
+	list-style-image: url("chrome://topick/content/resources/images/down128.png");
+}

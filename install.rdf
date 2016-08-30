@@ -36,7 +36,7 @@
 		<em:name>Topick</em:name>
 		<em:description>System wide hotkey enabling toggling of the active window to be "always on top".</em:description>
 		<em:creator>Noitidart</em:creator>
-		<em:contributor>Alexandre Moore for Icon</em:contributor>
+		<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
 
 		<!-- start localizing - For each entry in default data MUST have equivalent in each localized block -->
 		<em:localized>
@@ -45,7 +45,7 @@
 				<em:name>Topick</em:name>
 				<em:description>System wide hotkey enabling toggling of the active window to be "always on top".</em:description>
 				<em:creator>Noitidart</em:creator>
-				<em:contributor>Alexandre Moore for Icon</em:contributor>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
 			</Description>
 		</em:localized>
 		<em:localized>
@@ -54,7 +54,7 @@
 				<em:name>Topick</em:name>
 				<em:description>Gestion du raccourci-clavier de votre système pour activer/désactiver la fonction qui rend la fenêtre « Toujours visible »</em:description>
 				<em:creator>Noitidart</em:creator>
-				<em:contributor>Alexandre Moore for Icon</em:contributor>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
 				<em:translator>Goofy</em:translator>
 			</Description>
 		</em:localized>
