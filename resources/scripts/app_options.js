@@ -23,19 +23,19 @@ uninitAppPage = function() {
 }
 
 focusAppPage = function() {
-
+	console.error('focused!!!!!!');
 	callInMainworker('fetchCore', { nocore:true, hydrant_ex_instructions }, function(aArg) {
 		store.dispatch(setMainKeys(aArg.hydrant_ex));
 	});
 }
 
 shouldUpdateHydrantEx = function() {
-
+	console.log('in shouldUpdateHydrantEx');
 
 	var state = store.getState();
 
 	if (gSupressUpdateHydrantExOnce) {
-
+		console.log('hydrant_ex update supressed once');
 		gSupressUpdateHydrantExOnce = false;
 		return;
 	}
@@ -45,7 +45,7 @@ shouldUpdateHydrantEx = function() {
 	for (var p in hydrant_ex) {
 		var is_different = React.addons.shallowCompare({props:hydrant_ex[p]}, state[p]);
 		if (is_different) {
-
+			console.log('something in', p, 'of hydrant_ex was updated');
 			hydrant_ex_updated = true;
 
 			if (!gSupressUpdateHydrantExOnce) {
@@ -62,13 +62,13 @@ shouldUpdateHydrantEx = function() {
 					}
 				}
 			}
-
+			console.log('compared', p, 'is_different:', is_different, 'state:', state[p], 'hydrant_ex:', hydrant_ex[p]);
 			hydrant_ex[p] = state[p];
 			// break; // dont break because we want to update the hydrant_ex in this global scope for future comparing in this function.
 		}
 	}
 
-
+	console.log('done shouldUpdateHydrantEx');
 }
 
 
@@ -177,8 +177,8 @@ var RowPref = React.createClass({
 		 */
 
 
-
-
+		if (!type) { console.error('no type set!'); throw new Error('no type set!'); }
+		if (type == 'buttons' && !buttons) { console.error('must set buttons for type "buttons" set!'); throw new Error('must set labels for type "buttons" set!'); }
 
 		var type_to_rcls = { // type to react class
 			buttons: ButtonGroup,
@@ -233,7 +233,7 @@ var ButtonGroupBtn = React.createClass({
 		var { setValue, value } = this.props;
 
 		if (typeof(value) == 'object') {
-
+			console.warn('its in listening mode');
 		} else if (value == 'change') {
 			// special for "Change" hotkey
 			store.dispatch(startRecording());
@@ -285,7 +285,7 @@ var InputNumber = React.createClass({
 			}
 		}
 
-
+		if (!progProps.dispatcher) { console.error('deverror'); throw new Error('dispatcher is required in this.props!') }
 
 		// validate domProps and add the progrmatic ones
 		domProps.className = domProps.className ? domProps.className + ' inputnumber' : 'inputnumber';
@@ -302,7 +302,7 @@ var InputNumber = React.createClass({
 		);
 	},
 	componentDidUpdate: function(prevProps, prevState) {
-
+		console.log('input number updated, prevProps.defaultValue:', prevProps.defaultValue, 'nowProps.defaultValue:', this.props.defaultValue, 'dom.value:', this.value);
 		if (this.props.defaultValue != this.value) {
 			// need to update value
 			this.value = this.props.defaultValue;
@@ -318,11 +318,11 @@ var InputNumber = React.createClass({
 
 		// set up local globals
 		// this.value is the physically value that is currently showing in the input, NOT necessarily what is in the state object
-
+		if (!('defaultValue' in this.props)) { console.error('deverror'); throw new Error('in my design i expect for a defaultValue to be there') }
 		this.value = this.props.defaultValue; // this.value must always be a js number
 		this.valid = true; // needed otherwise, if this.setValid finds this.value to be valid, it will try to remove from classList, its an unnecessary dom action
 		this.setValid(); // this will set this.valid for me
-
+		console.log('ok mounted');
 
 		if (!this.props.parent_noactions) {
 			// set up parent node mouse drag stuff
@@ -344,7 +344,7 @@ var InputNumber = React.createClass({
 		var valid = this.testValid(this.value);
 		if (valid !== this.valid) {
 			this.valid = valid;
-
+			console.log('this.valid updated to:', valid);
 			if (!valid) {
 				if (!this.props.parent_novalidation) {
 					ReactDOM.findDOMNode(this.refs.input).parentNode.classList.add('has-error');
@@ -361,16 +361,16 @@ var InputNumber = React.createClass({
 		// acts on virtual value. NOT what is physically in dom. thus a value must be passed in as argument
 		// returns false if invalid, returns true if valid
 		if (isNaN(value)) {
-
+			console.error('value is isNaN', value);
 			return false;
 		} else if (value === '') {
-
+			console.error('value is blank', value);
 			return false;
 		} else if ('min' in this.progProps && this.progProps.min !== undefined && value < this.progProps.min) {
-
+			console.error('value is less then min', value);
 			return false;
 		} else if ('max' in this.progProps && this.progProps.max !== undefined && value > this.progProps.max) {
-
+			console.error('value is greater then max', value);
 			return false;
 		} else {
 			return true;
@@ -378,7 +378,7 @@ var InputNumber = React.createClass({
 	},
 	change: function(e) {
 		// TODO: i hope this only triggers when user changes - verify
-
+		console.log('user changed field value in dom! this.value:', this.value, 'dom value:', ReactDOM.findDOMNode(this.refs.input).value);
 		// update this.value, as this.value is to always be kept in sync with dom
 		this.value = isNaN(this.value) ? ReactDOM.findDOMNode(this.refs.input).value : parseInt(ReactDOM.findDOMNode(this.refs.input).value);
 		if (this.setValid()) {
@@ -388,7 +388,7 @@ var InputNumber = React.createClass({
 	},
 	wheel: function(e) {
 		var newValue;
-
+		console.log('e:', e.deltaMode, e.deltaY);
 		if (e.deltaY < 0) {
 			newValue = this.value + this.progProps.crement;
 		} else {
@@ -399,13 +399,13 @@ var InputNumber = React.createClass({
 			// update dom
 			this.value = newValue;
 			ReactDOM.findDOMNode(this.refs.input).value = this.value;
-
+			console.error('ReactDOM.findDOMNode(this.refs.input):', ReactDOM.findDOMNode(this.refs.input));
 			// update state
 			this.progProps.dispatcher(this.value);
 			// update dom error class
 			this.setValid();
 		} else {
-
+			console.log('wheel calculated invalid value, so dont do anything, value:', newValue);
 		}
 
 		e.stopPropagation();
@@ -425,7 +425,7 @@ var InputNumber = React.createClass({
 				// if its not a number then block it
 				if (e.key.length == 1) { // length test, so we allow special keys like Delete, Backspace, etc
 					if (isNaN(e.key) || e.key == ' ') {
-
+						console.log('blocked key:', '"' + e.key + '"');
 						e.preventDefault();
 					}
 				}
@@ -441,7 +441,7 @@ var InputNumber = React.createClass({
 			// update dom error class
 			this.setValid();
 		} else {
-
+			console.log('keydown calculated invalid value, so dont do anything, value:', newValue);
 		}
 	},
 	mousedown: function(e) {
@@ -450,7 +450,7 @@ var InputNumber = React.createClass({
 		if (e.target == ReactDOM.findDOMNode(this.refs.input)) { return } // as user is doing selection
 
 		if (!this.testValid(this.value)) {
-
+			console.log('dom value is currently invalid, so mousedown/mousemove will do nothing')
 			return
 		}
 
@@ -514,7 +514,7 @@ var InputNumber = React.createClass({
 				this.down_allowed = false;
 				this.downcover.classList.add('not-allowed');
 			}
-
+			console.log('mousemove calculated invalid value, so dont do anything, value:', newValue);
 		}
 	}
 });
@@ -585,14 +585,14 @@ function setMainKeys(obj_of_mainkeys) {
 
 // function onRecordingKeyDown(e) {
 // 	if (!e.repeat) {
-
+// 		console.log('key down: "' + e.key + '"');
 // 		if (e.key == 'Escape') {
 // 			store.dispatch(cancelRecording());
 // 		} else {
 // 			store.dispatch(mutateRecording({alt:true}));
 // 		}
 // 	}
-
+// 	else { console.warn('is key repeat') }
 //
 // 	e.preventDefault();
 // 	e.stopPropagation();
@@ -603,7 +603,7 @@ function startRecordingBootstrapCallback(aArg) {
 	var { __PROGRESS, recording } = aArg || {};
 	// recording - only there when progress
 	if (__PROGRESS) {
-
+		console.log('got recording:', recording);
 		store.dispatch(mutateRecording(recording));
 	} else {
 		store.dispatch(cancelRecording());
@@ -612,7 +612,7 @@ function startRecordingBootstrapCallback(aArg) {
 
 function startRecording() {
 	if (gIsRecording) {
-
+		console.error('already recording!');
 		return undefined;
 	}
 	callInMainworker('hotkeysShouldUnregister');
@@ -685,7 +685,7 @@ function prefs(state=hydrant_ex.prefs, action) {
 			var { obj_of_mainkeys } = action;
 			var mainkey = 'prefs';
 			if (mainkey in obj_of_mainkeys) {
-
+				console.error('yes updating state with new prefs');
 			}
 			return (mainkey in obj_of_mainkeys ? obj_of_mainkeys[mainkey] : state);
 		default:

@@ -14,16 +14,16 @@ var focusAppPage; // function
 var uninitAppPage; // function
 
 function preinit() {
-
+	console.log('in iprenit');
 	({ callInFramescript, callInMainworker, callInBootstrap } = CommHelper.contentinframescript);
 	gFsComm = new Comm.client.content(init);
 }
 window.addEventListener('DOMContentLoaded', preinit, false);
 
 function init() {
-
+	console.error('calling fetchCore with hydrant_ex_instructions:', hydrant_ex_instructions);
 	callInMainworker('fetchCore', { hydrant_ex_instructions }, function(aArg) {
-
+		console.log('aArg in app.js:', aArg);
 		({ core } = aArg);
 
 		// set up some listeners
@@ -87,7 +87,7 @@ const ReactTransitionGroup = React.addons.TransitionGroup;
 // STORE
 var store;
 
-
+// var unsubscribe = store.subscribe(() => console.log(store.getState()) );
 
 // REACT TRANSITION GROUPS
 function createTrans(transitionName, transitionEnterTimeout, transitionLeaveTimeout, transitionAppear=undefined) {
@@ -166,10 +166,10 @@ function formatStringFromNameCore(aLocalizableStr, aLoalizedKeyInCoreAddonL10n, 
 	// 051916 update - made it core.addon.l10n based
     // formatStringFromNameCore is formating only version of the worker version of formatStringFromName, it is based on core.addon.l10n cache
 
-
+	try { var cLocalizedStr = core.addon.l10n[aLoalizedKeyInCoreAddonL10n][aLocalizableStr]; if (!cLocalizedStr) { throw new Error('localized is undefined'); } } catch (ex) { console.error('formatStringFromNameCore error:', ex, 'args:', aLocalizableStr, aLoalizedKeyInCoreAddonL10n, aReplacements); } // remove on production
 
 	var cLocalizedStr = core.addon.l10n[aLoalizedKeyInCoreAddonL10n][aLocalizableStr];
-
+	// console.log('cLocalizedStr:', cLocalizedStr, 'args:', aLocalizableStr, aLoalizedKeyInCoreAddonL10n, aReplacements);
     if (aReplacements) {
         for (var i=0; i<aReplacements.length; i++) {
             cLocalizedStr = cLocalizedStr.replace('%S', aReplacements[i]);

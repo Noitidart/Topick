@@ -28,7 +28,7 @@ var core = {
 			// storage: OS.Path.join(OS.Constants.Path.profileDir, 'jetpack', core.addon.id, 'simple-storage')
 			// filestore:
 		},
-		cache_key: '1.1'
+		cache_key: Math.random()
 	},
 	os: {
 		// // name: OS.Constants.Sys.Name, // added by worker
@@ -186,24 +186,24 @@ function macToggleTop() {
 		// get `istop`
 		var istop;
 		var rez_level = ostypes.API('objc_msgSend')(win, ostypes.HELPER.sel('level'));
-
+		console.log('rez_level:', rez_level);
 		var level = parseInt(cutils.jscGetDeepest(ctypes.cast(rez_level, ostypes.TYPE.NSUInteger)));
-
+		console.log('level:', level);
 
 		var NSFloatingWindowLevel = ostypes.API('CGWindowLevelForKey')(ostypes.CONST.kCGFloatingWindowLevelKey);
 		NSFloatingWindowLevel = parseInt(cutils.jscGetDeepest(NSFloatingWindowLevel));
-
+		console.log('NSFloatingWindowLevel:', NSFloatingWindowLevel);
 
 		var NSNormalWindowLevel = ostypes.API('CGWindowLevelForKey')(ostypes.CONST.kCGNormalWindowLevelKey);
 		NSNormalWindowLevel = parseInt(cutils.jscGetDeepest(NSNormalWindowLevel));
-
+		console.log('NSNormalWindowLevel:', NSNormalWindowLevel);
 
 		istop = cutils.jscEqual(level, NSFloatingWindowLevel);
 
-
+		console.log('istop:', istop);
 
 		var rez_set = ostypes.API('objc_msgSend')(win, ostypes.HELPER.sel('setLevel:'), ostypes.TYPE.NSInteger(istop ? NSNormalWindowLevel : NSFloatingWindowLevel));
-
+		console.log('rez_set:', rez_set, cutils.jscGetDeepest(rez_set));
 
 		return cutils.jscGetDeepest(rez_set);
 	}
@@ -217,7 +217,7 @@ function startRecording(aArg, aReportProgress) {
 	initOstypes();
 
 	if (gIsRecording) {
-
+		console.error('already recording!');
 		deferredmain.resolve();
 		return deferredmain.promise;
 	}
@@ -230,10 +230,10 @@ function startRecording(aArg, aReportProgress) {
 				winRecordingCallback_c = ostypes.TYPE.LowLevelKeyboardProc.ptr(winRecordingCallback);
 
 				var rez_hook = ostypes.API('SetWindowsHookEx')(ostypes.CONST.WH_KEYBOARD_LL, winRecordingCallback_c, null, 0);
-
+				console.info('rez_hook:', rez_hook, rez_hook.toString());
 				if (rez_hook.isNull()) {
 					gIsRecording = false;
-
+					console.error('failed SetWindowsHookEx, winLastError:', ctypes.winLastError);
 					deferredmain.resolve();
 				} else {
 					OSStuff.mods = {};
@@ -251,7 +251,7 @@ function startRecording(aArg, aReportProgress) {
 				OSStuff.block_c = ostypes.HELPER.createBlock(macRecordingCallback_c);
 
 				var rez_add = ostypes.API('objc_msgSend')(NSEvent, ostypes.HELPER.sel('addLocalMonitorForEventsMatchingMask:handler:'), ostypes.TYPE.NSEventMask(ostypes.CONST.NSSystemDefinedMask | ostypes.CONST.NSKeyUpMask | ostypes.CONST.NSKeyDownMask), OSStuff.block_c.address());
-
+				console.log('rez_add:', rez_add, rez_add.toString());
 
 				OSStuff.add = rez_add;
 
@@ -280,7 +280,7 @@ function startRecording(aArg, aReportProgress) {
 
 function stopRecording() {
 	if (!gIsRecording) {
-
+		console.error('already IS NOT recording!');
 		return;
 	}
 
@@ -292,7 +292,7 @@ function stopRecording() {
 		case 'winnt':
 
 				var rez_unhook = ostypes.API('UnhookWindowsHookEx')(OSStuff.hook);
-
+				console.log('rez_unhook:', rez_unhook, rez_unhook.toString());
 
 				delete OSStuff.hook;
 
@@ -301,7 +301,7 @@ function stopRecording() {
 
 				var NSEvent = ostypes.HELPER.class('NSEvent');
 				var rez_remove = ostypes.API('objc_msgSend')(NSEvent, ostypes.HELPER.sel('removeMonitor:'), OSStuff.add);
-
+				console.log('rez_remove:', rez_remove, rez_remove.toString());
 
 				delete OSStuff.add;
 				delete OSStuff.block_c;
@@ -347,7 +347,7 @@ function winRecordingCallback(nCode, wParam, lParam) {
 					keystate = 0;
 				break;
 			default:
-
+				console.error('ERROR: got key event but cannot determine if its up or down keystate');
 				return ostypes.API('CallNextHookEx')(null, nCode, wParam, lParam);
 		}
 
@@ -445,13 +445,13 @@ function winRecordingCallback(nCode, wParam, lParam) {
 					});
 					stopRecording();
 				}
-
+				else { console.error('ERROR: could not find keyname for vkCode:', vkCode) }
 			}
 		}
 
 		return 1; // block the key
 	} else {
-
+		console.error('ERROR: nCode is not 0 NOR less than 0!!! what on earth? docs never said anything about this. i dont think this should ever happen!', 'nCode:', nCode);
 		return ostypes.API('CallNextHookEx')(null, nCode, wParam, lParam);
 	}
 }
@@ -460,9 +460,9 @@ var macRecordingCallback_c;
 function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 
 	var type = ctypes.cast(ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('type')), ostypes.TYPE.NSEventType);
-
+	// console.log('type:', type, type.toString());
 	type = parseInt(cutils.jscGetDeepest(type));
-
+	console.log('type:', type);
 
 	var startsWithTest; // will be set to a function
 
@@ -470,21 +470,21 @@ function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 		var subtype = ctypes.cast(ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('subtype')), ostypes.TYPE.NSUInteger);
 		if (!cutils.jscEqual(subtype, 8)) {
 			// not key related i think
-
+			console.warn('event not key related, subtype:', subtype, subtype.toString());
 			return objc_arg1__aNSEventPtr; // let it through
 		} else {
 			var data1 = parseInt(cutils.jscGetDeepest(ctypes.cast(ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('data1')), ostypes.TYPE.NSUInteger)));
-
+			console.info('data1:', data1);
 			var keyCode = data1 >>> 16;
-
+			console.log('keyCode:', keyCode);
 			var keystate = ((data1 & 0xFF00) >> 8) == 0xA ? 1 : 0 // 1 for down, 0 for up
-
+			console.info('keystate:', keystate);
 			var keyRepeat = !!(data1 & 0x1);
-
+			console.log('keyRepeat:', keyRepeat);
 
 			if (keyCode === 0) {
 				// its a mouse event
-
+				console.warn('keyCode of system defined event is 0, so not a key event');
 				return objc_arg1__aNSEventPtr; // let it through
 			}
 
@@ -495,16 +495,16 @@ function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 		var keystate = type == ostypes.CONST.NSKeyDown ? 1 : 0; // 1 for down, 0 for up
 
 		var keyCode = ctypes.cast(ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('keyCode')), ostypes.TYPE.UInt16);
-
+		console.info('keyCode:', keyCode);
 		keyCode = parseInt(cutils.jscGetDeepest(keyCode));
 
 		// var characters = ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('characters'));
 		// var characters_js = ostypes.HELPER.readNSString(characters);
-
+		// console.log('characters:', characters, 'characters_js:', characters_js);
 		startsWithTest = a_const => a_const.startsWith('kVK_');
 
 	} else {
-
+		console.error('got unknown type!!!');
 		return objc_arg1__aNSEventPtr; // let it through
 	}
 
@@ -527,7 +527,7 @@ function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 	}
 
 	var modifierFlags = ctypes.cast(ostypes.API('objc_msgSend')(objc_arg1__aNSEventPtr, ostypes.HELPER.sel('modifierFlags')), ostypes.TYPE.NSEventModifierFlags);
-
+	console.log('modifierFlags:', modifierFlags);
 	modifierFlags = parseInt(cutils.jscGetDeepest(modifierFlags));
 	if (modifierFlags & ostypes.CONST.NSCommandKeyMask)		{ OSStuff.mods.meta = true } else { delete OSStuff.mods.meta }
 	if (modifierFlags & ostypes.CONST.NSShiftKeyMask)		{ OSStuff.mods.shift = true } else { delete OSStuff.mods.shift }
@@ -554,7 +554,7 @@ function macRecordingCallback(c_arg1__self, objc_arg1__aNSEventPtr) {
 				});
 				stopRecording();
 			}
-
+			else { console.error('ERROR: could not find keyname for keyCode:', keyCode) }
 		}
 	}
 
@@ -567,17 +567,17 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 	// if (xeventPtr.contents.bytes[0] !== ostypes.CONST.KeyPress && xeventPtr.contents.bytes[0] !== ostypes.CONST.KeyRelease) {
 	// 	return ostypes.CONST.GDK_FILTER_CONTINUE;
 	// } else {
-
+	// 	console.log('xeventPtr.contents.bytes:', xeventPtr.contents.bytes, xeventPtr.contents.bytes.toString());
 	// 	return ostypes.CONST.GDK_FILTER_CONTINUE;
 	// }
 	var type = parseInt(cutils.jscGetDeepest(xeventPtr.contents.xany.type));
 	if (type !== ostypes.CONST.KeyPress && type !== ostypes.CONST.KeyRelease) {
-
+		// console.log('type is not KeyPress or KeyRelease:', type);
 		return ostypes.CONST.GDK_FILTER_CONTINUE; // allow the event
 	} else {
 		// gets to here only if it is KeyPress or KeyRelease
 		var xkey = ctypes.cast(xeventPtr.contents.xany.address(), ostypes.TYPE.XKeyEvent.ptr).contents;
-
+		console.log('xkey:', xkey, xkey.toString());
 
 		var keystate = type === ostypes.CONST.KeyPress ? 1 : 0; // 1 for down, 0 for up
 
@@ -585,23 +585,23 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 		var buf = ostypes.TYPE.char.array(30)();
 		var keysym = ostypes.TYPE.KeySym();
 		var rez_getkeysym = ostypes.API('XLookupString')(xkey.address(), buf, buf.constructor.size, keysym.address(), null);
-
+		console.log('rez_getkeysym:', rez_getkeysym);
 
 		keysym = parseInt(cutils.jscGetDeepest(keysym)); // this is the `XK_*` const value
+		console.log('keysym:', keysym);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+		// var keyname; // console.log('remove on prod') just debug
+		// var consts = ostypes.CONST; // console.log('remove on prod') just debug
+		// for (var c in consts) { // console.log('remove on prod') just debug
+		// 	if (c.startsWith('XK_')) { // console.log('remove on prod') just debug
+		// 		var val = consts[c]; // console.log('remove on prod') just debug
+		// 		if (val === keysym) { // console.log('remove on prod') just debug
+		// 			keyname = c.substr(2).replace(/_/g, ' '); // console.log('remove on prod') just debug
+		// 			break; // console.log('remove on prod') just debug
+		// 		} // console.log('remove on prod') just debug
+		// 	} // console.log('remove on prod') just debug
+		// } // console.log('remove on prod') just debug
+		// console.log('keyname:', keyname); // console.log('remove on prod') just debug
 
 		var ismod = false;
 		var modname; // set to key it should be in `mods` object
@@ -666,7 +666,7 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 		} else if (!ismod && keystate) {
 			var keycode = parseInt(cutils.jscGetDeepest(xkey.keycode));
 			var keyconst;
-
+			console.log('keycode:', keycode);
 
 			if (keysym === ostypes.CONST.XK_Escape) {
 				stopRecording();
@@ -685,7 +685,7 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 				}
 
 				if (keyname) {
-
+					console.log('keyname:', keyname);
 					var mods = {};
 					for (var mod in OSStuff.mods) {
 						mods[mod.substr(1)] = true;
@@ -700,7 +700,7 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 					});
 					stopRecording();
 				}
-
+				else { console.error('ERROR: could not find keyname for vkCode:', vkCode) }
 			}
 		}
 
@@ -738,10 +738,10 @@ function formatStringFromNameCore(aLocalizableStr, aLoalizedKeyInCoreAddonL10n, 
 	// 051916 update - made it core.addon.l10n based
     // formatStringFromNameCore is formating only version of the worker version of formatStringFromName, it is based on core.addon.l10n cache
 
-
+	try { var cLocalizedStr = core.addon.l10n[aLoalizedKeyInCoreAddonL10n][aLocalizableStr]; if (!cLocalizedStr) { throw new Error('localized is undefined'); } } catch (ex) { console.error('formatStringFromNameCore error:', ex, 'args:', aLocalizableStr, aLoalizedKeyInCoreAddonL10n, aReplacements); } // remove on production
 
 	var cLocalizedStr = core.addon.l10n[aLoalizedKeyInCoreAddonL10n][aLocalizableStr];
-
+	// console.log('cLocalizedStr:', cLocalizedStr, 'args:', aLocalizableStr, aLoalizedKeyInCoreAddonL10n, aReplacements);
     if (aReplacements) {
         for (var i=0; i<aReplacements.length; i++) {
             cLocalizedStr = cLocalizedStr.replace('%S', aReplacements[i]);

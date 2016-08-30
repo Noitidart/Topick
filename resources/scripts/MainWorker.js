@@ -12,7 +12,7 @@ var OSStuff = {};
 
 function dummyForInstantInstantiate() {}
 function init(objCore) {
-
+	//console.log('in worker init');
 
 	core = objCore;
 
@@ -57,7 +57,7 @@ function init(objCore) {
 // Start - Addon Functionality
 
 function onBeforeTerminate() {
-
+	console.log('doing mainworker term proc');
 	var promises_main = [];
 
 	writeFilestore();
@@ -82,7 +82,7 @@ function onBeforeTerminate() {
 	}
 
 
-
+	console.log('ok onBeforeTerminate return point');
 
 	return Promise.all(promises_main);
 
@@ -96,13 +96,13 @@ function xcbGetToppableWindow(aWin) {
 		var rez_get = ostypes.API('xcb_get_property_reply')(ostypes.HELPER.cachedXCBConn(), req_get, null);
 		if (!rez_get.isNull()) {
 			var got_type = cutils.jscGetDeepest(rez_get.contents.type);
-
+			console.log('rez_get:', rez_get);
 			ostypes.API('free')(rez_get);
 			if (!cutils.jscEqual(got_type, ostypes.CONST.XCB_NONE)) { // if `rez_get->type` is not XCB_NONE then it has the atom of `_NET_WM_STATE`
-
+				console.log('win:', win, 'has _NET_WM_STATE atom');
 				return true;
 			} else {
-
+				console.log('win:', win, 'does not have _NET_WM_STATE atom');
 				return undefined;
 			}
 		}
@@ -114,7 +114,7 @@ function xcbGetToppableWindow(aWin) {
 		// no toppable window found
 		return null;
 	}
-
+	console.log('rez_query:', rez_query);
 }
 
 function xcbSetAlwaysOnTop(aXcbWindowT) {
@@ -157,10 +157,10 @@ function xcbSetAlwaysOnTop(aXcbWindowT) {
 	ev.data.data32[1] = ostypes.HELPER.cachedXCBAtom('_NET_WM_STATE_ABOVE');
 
 	var rez_send = ostypes.API('xcb_send_event')(ostypes.HELPER.cachedXCBConn(), 0, ostypes.HELPER.cachedXCBRootWindow(), ostypes.CONST.XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | ostypes.CONST.XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, ctypes.cast(ev.address(), ctypes.char.ptr));
-
+	console.log('rez_send:', rez_send);
 
 	var rez_flush = ostypes.API('xcb_flush')(ostypes.HELPER.cachedXCBConn());
-
+	console.log('rez_flush:', rez_flush);
 }
 function xcbUnsetAlwaysOnTop(aXcbWindowT) {
 	var ev = ostypes.TYPE.xcb_client_message_event_t();
@@ -173,10 +173,10 @@ function xcbUnsetAlwaysOnTop(aXcbWindowT) {
 	ev.data.data32[1] = ostypes.HELPER.cachedXCBAtom('_NET_WM_STATE_ABOVE');
 
 	var rez_send = ostypes.API('xcb_send_event')(ostypes.HELPER.cachedXCBConn(), 0, ostypes.HELPER.cachedXCBRootWindow(), ostypes.CONST.XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | ostypes.CONST.XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, ctypes.cast(ev.address(), ctypes.char.ptr));
-
+	console.log('rez_send:', rez_send);
 
 	var rez_flush = ostypes.API('xcb_flush')(ostypes.HELPER.cachedXCBConn());
-
+	console.log('rez_flush:', rez_flush);
 }
 
 function xcbGetFocusedWindow() {
@@ -186,7 +186,7 @@ function xcbGetFocusedWindow() {
 	var rez_focus = ostypes.API('xcb_get_input_focus_reply')(ostypes.HELPER.cachedXCBConn(), req_focus, null);
 	var win = rez_focus.contents.focus;
 	ostypes.API('free')(rez_focus);
-
+	// console.log('rez_focus:', rez_focus);
 	return win;
 }
 
@@ -221,7 +221,7 @@ function xcbQueryParentsUntil(aXcbWindowT, aCallback, aOptions={}) {
 	while (!cutils.jscEqual(win, root)) {
 		var req_query = ostypes.API('xcb_query_tree')(ostypes.HELPER.cachedXCBConn(), win);
 		var rez_query = ostypes.API('xcb_query_tree_reply')(ostypes.HELPER.cachedXCBConn(), req_query, null);
-
+		console.log('rez_query.contents:', rez_query.contents);
 		if (root === -1) {
 			root = rez_query.contents.root;
 		}
@@ -241,20 +241,20 @@ function xcbQueryParentsUntil(aXcbWindowT, aCallback, aOptions={}) {
 
 function xcbGetWindowTitle(aXcbWindowT) {
 	var win = aXcbWindowT;
-
+	// console.log('win:', win);
 
 	var req_title = ostypes.API('xcb_get_property')(ostypes.HELPER.cachedXCBConn(), 0, win, ostypes.CONST.XCB_ATOM_WM_NAME, ostypes.CONST.XCB_ATOM_STRING, 0, 100); // `100` means it will get 100*4 so 400 bytes, so that 400 char, so `rez_title.bytes_after` should be `0` but i can loop till it comes out to be 0
 	var rez_title = ostypes.API('xcb_get_property_reply')(ostypes.HELPER.cachedXCBConn(), req_title, null);
-
+	// console.log('rez_title:', rez_title);
 
 	var title_len = ostypes.API('xcb_get_property_value_length')(rez_title); // length is not null terminated so "Console - chrome://nativeshot/content/resources/scripts/MainWorker.js?0.01966718940939427" will be length of `88`, this matches `rez_title.length` but the docs recommend to use this call to get the value, i dont know why
-
+	console.log('title_len:', title_len, 'rez_title.contents.length:', rez_title.contents.length); // i think `rez_title.contents.length` is the actual length DIVIDED by 4, and rez_title_len is not dividied by 4
 
 	var title_buf = ostypes.API('xcb_get_property_value')(rez_title); // "title_len: 89 rez_title.contents.length: 23" for test case of "Console - chrome://nativeshot/content/resources/scripts/MainWorker.js?0.01966718940939427"
-
+	// console.log('title_buf:', title_buf);
 
 	var title = ctypes.cast(title_buf, ctypes.char.array(title_len).ptr).contents.readString();
-
+	console.log('title:', title);
 
 	ostypes.API('free')(rez_title);
 
@@ -263,7 +263,7 @@ function xcbGetWindowTitle(aXcbWindowT) {
 
 function xcbFlush() {
 	var rez_flush = ostypes.API('xcb_flush')(ostypes.HELPER.cachedXCBConn());
-
+	console.log('rez_flush', rez_flush);
 }
 
 function getActiveWindow() {
@@ -297,7 +297,7 @@ function getActiveWindow() {
 }
 
 function toggleTop() {
-
+	console.log('in toggleTop here');
 
 	switch (core.os.mname) {
 		case 'winnt':
@@ -310,12 +310,12 @@ function toggleTop() {
 				var rez_istop = ostypes.API('GetWindowLongPtr')(win, ostypes.CONST.GWL_EXSTYLE);
 				// if rez_istop == 0 then it failed, should test ctypes.winLastError
 				if (cutils.jscEqual(rez_istop, 0)) {
-
+					console.error('failed to get current top status of window, winLastError:', ctypes.winLastError);
 					return false;
 				}
 
 				var istop = !cutils.jscEqual(ctypes_math.UInt64.and(cutils.jscGetDeepest(rez_istop), ostypes.CONST.WS_EX_TOPMOST), 0);
-
+				console.log('istop:', istop);
 
 				// toggle it
 				var rez_set = ostypes.API('SetWindowPos')(win, istop ? ostypes.CONST.HWND_NOTOPMOST : ostypes.CONST.HWND_TOPMOST, 0, 0, 0, 0, ostypes.CONST.SWP_NOSIZE | ostypes.CONST.SWP_NOMOVE /* | ostypes.CONST.SWP_NOREDRAW*/ ); // window wasnt moved so no need for SWP_NOREDRAW, the NOMOVE and NOSIZE params make it ignore x, y, cx, and cy
@@ -323,7 +323,7 @@ function toggleTop() {
 				if (rez_set) {
 					return true;
 				} else {
-
+					console.error('failed to set window status to', istop ? 'NOT topmost' : 'TOPMOST', 'winLastError:', ctypes.winLastError);
 					return false;
 				}
 
@@ -340,7 +340,7 @@ function toggleTop() {
 				var rez_get = ostypes.API('xcb_get_property_reply')(ostypes.HELPER.cachedXCBConn(), req_get, null);
 
 				if (rez_get.isNull()) {
-
+					console.error('failed to get current top status of window as rez_get is null');
 					return false;
 				} else {
 					var got_type = cutils.jscGetDeepest(rez_get.contents.type);
@@ -358,7 +358,7 @@ function toggleTop() {
 					} else {
 						istop = false;
 					}
-
+					console.log('istop:', istop);
 
 					if (istop) {
 						xcbUnsetAlwaysOnTop(win);
@@ -398,7 +398,7 @@ function hotkeysShouldUnregister() {
 		// it means something is registered, so lets unregister it
 		return hotkeysUnregister();
 	} // else it will return undefined
-
+	else { console.log('no need to hotkeysUnregister'); }
 }
 
 var gHKI;
@@ -408,13 +408,13 @@ function reinitHotkeys(aRegister) {
 
 	// hotkeys MUST NOT be registered when this runs
 	if (gHKI && gHKI.hotkeys && gHKI.hotkeys.find(el => el.__REGISTERED)) {
-
+		console.error('deverror! cannot reinitHotkeys while hotkeys are active, first unregister it!');
 		Promise.all([hotkeysUnregister()]).then(()=>{reinitHotkeys(true)});
 		return;
 	}
 
 	var hotkey = fetchFilestoreEntry({mainkey:'prefs', key:'hotkey'});
-
+	console.log('reinit hotkey with hotkey:', hotkey);
 	var hotkeystr = buildHotkeyStr(hotkey);
 
 	if (!gHKI) { // as i do reinit
@@ -431,7 +431,7 @@ function reinitHotkeys(aRegister) {
 
 	switch (core.os.mname) {
 		case 'winnt':
-
+				console.log('in init hotkeys');
 				gHKI.hotkeys = [
 					{
 						desc: hotkeystr, // it describes the `code` combo in english for use on hotkeysRegister() failing
@@ -440,7 +440,7 @@ function reinitHotkeys(aRegister) {
 						callback: 'toggleTop',
 					}
 				];
-
+				console.log('ok set');
 			break;
 		case 'gtk':
 				gHKI.hotkeys = [
@@ -489,10 +489,10 @@ function reinitHotkeys(aRegister) {
 				];
 			break;
 		default:
-
+			console.error('your os is not supported for global platform hotkey');
 			// throw new Error('your os is not supported for global platform hotkey');
 	}
-
+	console.log('done init hotkeys');
 
 	if (aRegister) {
 		hotkeysRegister().then(failed => !failed ? null : callInBootstrap('hotkeyRegistrationFailed', failed));
@@ -500,7 +500,7 @@ function reinitHotkeys(aRegister) {
 }
 
 function fetchCore(aArg) {
-
+	console.log('in fetchCore');
 	var { hydrant_ex_instructions, nocore } = aArg || {};
 
 	var deferredmain = new Deferred();
@@ -578,7 +578,7 @@ function readFilestore() {
 					getter();
 				}
 			}
-
+			else { console.error('OSFileError:', OSFileError); throw new Error('error when trying to ready hydrant:', OSFileError); }
 		}
 	}
 
@@ -673,7 +673,7 @@ var gWriteFilestoreTimeout = null;
 function writeFilestore(aArg, aComm) {
 	// writes gFilestore to file (or if it is undefined, it writes gFilestoreDefault)
 	if (!gFilestore.dirty) {
-
+		console.warn('filestore is not dirty, so no need to write it');
 		return;
 	}
 	if (gWriteFilestoreTimeout !== null) {
@@ -700,7 +700,7 @@ function bootstrapTimeout(milliseconds) {
 
 // rev2 - https://gist.github.com/Noitidart/ec1e6b9a593ec7e3efed
 function xhr(aUrlOrFileUri, aOptions={}) {
-
+	// console.error('in xhr!!! aUrlOrFileUri:', aUrlOrFileUri);
 
 	// all requests are sync - as this is in a worker
 	var aOptionsDefaults = {
@@ -725,9 +725,9 @@ function xhr(aUrlOrFileUri, aOptions={}) {
 	cRequest.responseType = aOptions.responseType;
 	cRequest.send(aOptions.data);
 
+	// console.log('response:', cRequest.response);
 
-
-
+	// console.error('done xhr!!!');
 	return cRequest;
 }
 // rev2 - https://gist.github.com/Noitidart/ea840a3a0fab9af6687edbad3ae63f48
@@ -763,7 +763,7 @@ function formatStringFromName(aKey, aLocalizedPackageName, aReplacements) {
 
 		_cache_formatStringFromName_packages[packageName] = packageJson;
 
-
+		console.log('packageJson:', packageJson);
 	}
 
 	var cLocalizedStr = _cache_formatStringFromName_packages[packageName][aKey];
