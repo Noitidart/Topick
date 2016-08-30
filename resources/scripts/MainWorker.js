@@ -328,6 +328,46 @@ function toggleTop() {
 				}
 
 			break;
+		case 'gtk':
+
+				var win = getActiveWindow();
+				if (!win) {
+					return false;
+				}
+
+				// get `istop`
+				var req_get = ostypes.API('xcb_get_property')(ostypes.HELPER.cachedXCBConn(), 0, win, ostypes.HELPER.cachedXCBAtom('_NET_WM_STATE'), ostypes.CONST.XCB_ATOM_ATOM, 0, 100);
+				var rez_get = ostypes.API('xcb_get_property_reply')(ostypes.HELPER.cachedXCBConn(), req_get, null);
+
+				if (rez_get.isNull()) {
+					console.error('failed to get current top status of window as rez_get is null');
+					return false;
+				} else {
+					var got_type = cutils.jscGetDeepest(rez_get.contents.type);
+					var length = parseInt(cutils.jscGetDeepest(ostypes.API('xcb_get_property_value_length')(rez_get)));
+					var atoms_cnt = length / ostypes.TYPE.xcb_atom_t.size;
+
+					var istop;
+					if (atoms_cnt > 0) {
+						var rez_atoms = ostypes.API('xcb_get_property_value')(rez_get);
+						var atoms = ctypes.cast(rez_atoms, ostypes.TYPE.xcb_atom_t.array(atoms_cnt).ptr).contents;
+
+						var atoms_js = cutils.map(atoms, el=>parseInt(cutils.jscGetDeepest(el)));
+
+						istop = atoms_js.find( el => cutils.jscEqual(el, ostypes.HELPER.cachedXCBAtom('_NET_WM_STATE_ABOVE')) );
+					} else {
+						istop = false;
+					}
+					console.log('istop:', istop);
+
+					if (istop) {
+						xcbUnsetAlwaysOnTop(win);
+					} else {
+						xcbSetAlwaysOnTop(win);
+					}
+				}
+
+			break;
 	}
 }
 
