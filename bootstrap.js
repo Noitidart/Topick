@@ -674,11 +674,11 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 				var keyname;
 				var consts = ostypes.CONST;
 				for (var c in consts) {
-					if (c.startsWith('XK_')) {
+					if (c.startsWith('XK_') || c.startsWith('XF86')) {
 						var val = consts[c];
 						if (val === keysym) {
 							keyconst = c;
-							keyname = c.substr(2).replace(/_/g, ' ');
+							keyname = c.substr(c.startsWith('XK_') ? 3 : 4).replace(/_/g, ' ');
 							break;
 						}
 					}
