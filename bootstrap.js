@@ -638,8 +638,8 @@ function gtkRecordingCallback(xeventPtr, eventPtr, data) {
 				modname = 'ralt';
 				ismod = true;
 				break;
-			// case ostypes.CONST.XK_Meta_L:
-			// case ostypes.CONST.XK_Meta_R:
+			case ostypes.CONST.XK_Meta_L:
+			case ostypes.CONST.XK_Meta_R:
 			// case ostypes.CONST.VK_CAPITAL:
 				// these keys are mods but not counted into hotkey combo
 				ismod = true;
