@@ -41,11 +41,71 @@
 		<!-- start localizing - For each entry in default data MUST have equivalent in each localized block -->
 		<em:localized>
 			<Description>
+				<em:locale>ar</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>مفتاح اختصار على مستوى النظام يتيح تبديل وضع «دائما فوق كل النوافذ» للنافذة الحالية.</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>noureddin</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>bg</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>DESC</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>АдмиралАнимЕ</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>ca</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>DESC</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>Rabbitter</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>de</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>DESC</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>pinsky</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
 				<em:locale>en-US</em:locale>
 				<em:name>Topick</em:name>
 				<em:description>System wide hotkey enabling toggling of the active window to be "always on top".</em:description>
 				<em:creator>Noitidart</em:creator>
 				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>es-ES</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>Atajo de teclado del sistema para alternar que la ventana activa esté "siempre por encima".</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>AlePerez92</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>et</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>Lisa, mis võimaldab klahvikombinatsiooniga aktiivse akna alati kõige pealmiseks olekut lülitada.</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>mdr.ksk</em:translator>
 			</Description>
 		</em:localized>
 		<em:localized>
@@ -56,6 +116,87 @@
 				<em:creator>Noitidart</em:creator>
 				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
 				<em:translator>Goofy</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>it</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>Tasto di scelta rapida di sistema per abilitare/disabilitare la funzionalità "Sempre in primo piano" della finestra attiva.</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator></em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>ja</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>アクティブウィンドウを "常に最前面に表示" するシステムワイドのホットキー。</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>mar</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>lt</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>Sistemos sparčiųjų klavišų panaudojimas aktyviam langui padaryti visada fone.</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>zygimantus</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>nl</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>Systeembrede sneltoets waarmee u het actieve venster ‘altijd op voorgrond’ kunt zetten.</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>markh</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>pt-PT</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>Ativação de alterar a tecla de atalho por todo o sistema na janela ativa para estar "sempre no topo"</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>ricardosimoes</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>ru</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>Глобальная горячая клавиша, делающая активное окно всегда видимым.</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>insolor</em:translator>
+				<em:translator>veadarkin</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>zh-CN</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>提供全局快捷键，切换活动窗口的“始终置顶”状态。</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>yfdyh000</em:translator>
+			</Description>
+		</em:localized>
+		<em:localized>
+			<Description>
+				<em:locale>zh-TW</em:locale>
+				<em:name>Topick</em:name>
+				<em:description>用來開關當前視窗能夠「永遠顯示在最上層」的系統級熱鍵。</em:description>
+				<em:creator>Noitidart</em:creator>
+				<em:contributor>Alexandre Moore for Snowish Iconset</em:contributor>
+				<em:translator>Goldie</em:translator>
 			</Description>
 		</em:localized>
 	  </Description>
